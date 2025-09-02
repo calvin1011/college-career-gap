@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
+import { MessageComposer } from '@/components/channels/MessageComposer';
 
 interface ChannelPageProps {
   params: {
@@ -46,6 +47,7 @@ export default function ChannelPage({ params }: ChannelPageProps) {
   }, [params.channelId, user]);
 
   const loading = loadingChannel || loadingMessages;
+  const isAdmin = user?.role === 'admin';
 
   if (loading) {
     return (
@@ -76,8 +78,14 @@ export default function ChannelPage({ params }: ChannelPageProps) {
     );
   }
 
+  const handleMessagePosted = (newMessage: Message) => {
+    // This is a placeholder function for now.
+    // In the next step, we will implement the logic to post the message to Firestore.
+    // The useMessages hook will then automatically update the message feed.
+  };
+
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 flex flex-col h-[calc(100vh-64px)]">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-4xl font-bold text-gray-900">{channel.name}</h1>
@@ -89,7 +97,7 @@ export default function ChannelPage({ params }: ChannelPageProps) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg min-h-[500px] flex flex-col-reverse p-4 space-y-4">
+      <div className="bg-white rounded-lg shadow-lg flex-grow overflow-y-auto flex flex-col-reverse p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex-grow flex items-center justify-center">
             <p className="text-gray-400">No messages yet. Be the first to post!</p>
@@ -106,6 +114,15 @@ export default function ChannelPage({ params }: ChannelPageProps) {
           ))
         )}
       </div>
+
+      {isAdmin && (
+        <MessageComposer
+          channelId={channel.id}
+          userId={user.uid}
+          isAdmin={isAdmin}
+          onMessagePosted={handleMessagePosted}
+        />
+      )}
     </div>
   );
 }
