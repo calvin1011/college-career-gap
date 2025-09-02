@@ -8,19 +8,21 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   sendEmailVerification,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
-import { User, Channel } from '@/types';
+import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
+import { findChannelByMajor, joinChannel } from '@/components/channels/ChannelService';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string, major: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, major: Major) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
@@ -39,39 +41,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setFirebaseUser(firebaseUser);
+    const unsubscribe = onAuthStateChanged(auth, async (userCredential) => {
+      setFirebaseUser(userCredential);
 
+      if (userCredential) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = { uid: userDoc.id, ...userDoc.data() } as User;
-            setUser(userData);
-          } else {
-            // This case handles a newly signed-up user before their Firestore profile is created.
-            // We set a basic user object to prevent premature redirects.
-            // FIX: Add a type assertion to handle the potential for null email.
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email as string,
-              displayName: firebaseUser.displayName || 'New User',
-              major: '', // Major is not yet in the user doc
+          const userDocRef = doc(db, 'users', userCredential.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (!userDoc.exists()) {
+            // We set a basic user object to prevent premature redirects and continue with account creation.
+            const newUser: User = {
+              uid: userCredential.uid,
+              email: userCredential.email as string,
+              displayName: userCredential.displayName || 'New User',
+              major: '',
               role: 'student',
-              isVerified: firebaseUser.emailVerified,
+              isVerified: userCredential.emailVerified,
               joinedChannels: [],
               createdAt: new Date(),
               lastActiveAt: new Date(),
               profile: {},
-            });
+            };
+            await setDoc(userDocRef, newUser);
+            setUser(newUser);
+          } else {
+            // User exists in Firestore, populate the user state with profile data
+            const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+            setUser(userData);
           }
         } catch (error) {
-          console.error('Error fetching user profile:', error);
+          console.error('Error fetching or creating user profile:', error);
           setUser(null);
         }
       } else {
+        // No user is logged in
         setFirebaseUser(null);
         setUser(null);
       }
@@ -85,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return email.toLowerCase().endsWith('.edu');
   };
 
-  const signUp = async (email: string, password: string, displayName: string, major: string) => {
+  const signUp = async (email: string, password: string, displayName: string, major: Major) => {
     if (!validateEducationalEmail(email)) {
       throw new Error('Please use your educational (.edu) email address');
     }
@@ -105,16 +112,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         joinedChannels: [],
         createdAt: new Date(),
         lastActiveAt: new Date(),
-        profile: {}
+        profile: {},
       };
 
       await setDoc(doc(db, 'users', result.user.uid), userProfile);
 
-      // Auto-join the user to their major-specific channel
-      const channelRef = doc(db, 'channels', major.toLowerCase().replace(/\s/g, '-'));
-      await updateDoc(channelRef, {
-        members: arrayUnion(result.user.uid)
-      });
+      const channel = await findChannelByMajor(major);
+      if (channel) {
+        await joinChannel(channel.id, result.user.uid);
+      }
 
       toast.success('Account created! Please check your email to verify your account.');
     } catch (error: any) {
@@ -130,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
       toast.success('Welcome back!');
+      router.push('/dashboard');
     } catch (error: any) {
       console.error('Sign in error:', error);
       throw new Error(error.message || 'Failed to sign in');
@@ -141,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      router.push('/');
       toast.success('Signed out successfully');
     } catch (error: any) {
       console.error('Sign out error:', error);
@@ -154,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Password reset email sent');
     } catch (error: any) {
       console.error('Password reset error:', error);
-      throw new Error(error.message || 'Failed to send reset email');
+      throw new Error(error.message || 'Failed to send password reset email');
     }
   };
 
@@ -165,12 +173,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut: handleSignOut,
-    resetPassword
+    resetPassword,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
