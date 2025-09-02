@@ -1,5 +1,5 @@
 import { db } from '@/services/firebase/config';
-import { collection, getDocs, doc, setDoc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, getDoc, query, where, updateDoc, arrayUnion, runTransaction, increment } from 'firebase/firestore';
 import { Channel, Major, SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -55,9 +55,21 @@ export async function getChannels(): Promise<Channel[]> {
 export async function findChannelByMajor(major: Major): Promise<Channel | null> {
   const slug = major.toLowerCase().replace(/\s/g, '-');
   const channelRef = doc(db, 'channels', slug);
-  const docSnap = await getDocs(query(collection(db, 'channels'), where('slug', '==', slug)));
-  if (!docSnap.empty) {
-    return { id: docSnap.docs[0].id, ...docSnap.docs[0].data() } as Channel;
+  const docSnap = await getDoc(channelRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Channel;
+  }
+  return null;
+}
+
+/**
+ * Finds a channel by its slug.
+ */
+export async function findChannelBySlug(slug: string): Promise<Channel | null> {
+  const channelRef = doc(db, 'channels', slug);
+  const docSnap = await getDoc(channelRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Channel;
   }
   return null;
 }
@@ -72,12 +84,22 @@ export async function joinChannel(channelId: string, userId: string) {
     const channelRef = doc(db, 'channels', channelId);
     const userRef = doc(db, 'users', userId);
 
-    await updateDoc(channelRef, {
-      members: arrayUnion(userId)
-    });
+    await runTransaction(db, async (transaction) => {
+      const channelDoc = await transaction.get(channelRef);
+      if (!channelDoc.exists()) {
+        throw new Error("Channel does not exist!");
+      }
 
-    await updateDoc(userRef, {
-      joinedChannels: arrayUnion(channelId)
+      // Atomically add the user to the channel and update the member count
+      transaction.update(channelRef, {
+        members: arrayUnion(userId),
+        memberCount: increment(1)
+      });
+
+      // Atomically add the channel to the user's joined channels
+      transaction.update(userRef, {
+        joinedChannels: arrayUnion(channelId)
+      });
     });
 
     toast.success('Joined channel successfully!');
