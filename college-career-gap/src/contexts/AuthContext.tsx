@@ -10,9 +10,9 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
-import { User } from '@/types';
+import { User, Channel } from '@/types';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -48,9 +48,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
-            setUser({ uid: userDoc.id, ...userDoc.data() } as User);
+            const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+            setUser(userData);
           } else {
-            setUser(null);
+            // This case handles a newly signed-up user before their Firestore profile is created.
+            // We set a basic user object to prevent premature redirects.
+            // FIX: Add a type assertion to handle the potential for null email.
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email as string,
+              displayName: firebaseUser.displayName || 'New User',
+              major: '', // Major is not yet in the user doc
+              role: 'student',
+              isVerified: firebaseUser.emailVerified,
+              joinedChannels: [],
+              createdAt: new Date(),
+              lastActiveAt: new Date(),
+              profile: {},
+            });
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -95,6 +110,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await setDoc(doc(db, 'users', result.user.uid), userProfile);
 
+      // Auto-join the user to their major-specific channel
+      const channelRef = doc(db, 'channels', major.toLowerCase().replace(/\s/g, '-'));
+      await updateDoc(channelRef, {
+        members: arrayUnion(result.user.uid)
+      });
+
       toast.success('Account created! Please check your email to verify your account.');
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -133,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Password reset email sent');
     } catch (error: any) {
       console.error('Password reset error:', error);
-      throw new Error(error.message || 'Failed to send password reset email');
+      throw new Error(error.message || 'Failed to send reset email');
     }
   };
 

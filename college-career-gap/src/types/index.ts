@@ -34,6 +34,7 @@ export interface Channel {
     maxMessageLength: number;
     autoModeration: boolean;
   };
+  members: string[]; // Added members
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
 }
