@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug } from '@/components/channels/ChannelService';
 import { Channel, Message } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Users, Lock } from 'lucide-react';
+import { Users, Lock, MessageCircle, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
@@ -52,7 +51,10 @@ export default function ChannelPage({ params }: ChannelPageProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading channel...</p>
+        </div>
       </div>
     );
   }
@@ -61,8 +63,6 @@ export default function ChannelPage({ params }: ChannelPageProps) {
   const isMember = user?.joinedChannels.includes(channel?.id || '');
 
   if (!channel || !isMember) {
-    // If the channel doesn't exist or the user is not a member,
-    // we can either show a "not found" page or a restricted access message.
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="max-w-md mx-auto text-center p-8">
@@ -71,7 +71,15 @@ export default function ChannelPage({ params }: ChannelPageProps) {
               <Lock size={48} className="mx-auto" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-            <p className="text-gray-600">You must be a member of this channel to view its content.</p>
+            <p className="text-gray-600 mb-4">
+              You must be a member of this channel to view its content.
+            </p>
+            <a
+              href="/dashboard"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Go to Dashboard
+            </a>
           </CardContent>
         </Card>
       </div>
@@ -79,42 +87,138 @@ export default function ChannelPage({ params }: ChannelPageProps) {
   }
 
   const handleMessagePosted = (newMessage: Message) => {
-    // This is a placeholder function for now.
-    // In the next step, we will implement the logic to post the message to Firestore.
-    // The useMessages hook will then automatically update the message feed.
+    // The useMessages hook will automatically update with real-time data
+    // This is just for optimistic updates if needed
   };
 
   return (
     <div className="container mx-auto py-8 flex flex-col h-[calc(100vh-64px)]">
-      <div className="flex items-center justify-between mb-6">
+      {/* Channel Header */}
+      <div className="flex items-center justify-between mb-6 bg-white p-6 rounded-lg shadow-sm">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">{channel.name}</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{channel.name}</h1>
           <p className="text-gray-600">{channel.description}</p>
-        </div>
-        <div className="flex items-center text-gray-500">
-          <Users className="w-5 h-5 mr-2" />
-          <span>{channel.members.length} members</span>
-        </div>
-      </div>
 
-      <div className="bg-white rounded-lg shadow-lg flex-grow overflow-y-auto flex flex-col-reverse p-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="flex-grow flex items-center justify-center">
-            <p className="text-gray-400">No messages yet. Be the first to post!</p>
+          {/* Welcome message for newly joined users */}
+          <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500">
+            <span className="flex items-center">
+              <Users className="w-4 h-4 mr-1" />
+              {channel.memberCount || 0} members
+            </span>
+            <span className="flex items-center">
+              <MessageCircle className="w-4 h-4 mr-1" />
+              {channel.messageCount || 0} resources shared
+            </span>
           </div>
-        ) : (
-          messages.map((message) => (
-            <div key={message.id} className="bg-gray-50 p-4 rounded-lg shadow-sm">
-              <p className="text-gray-800">{message.content}</p>
-              {/* This is a basic message display. We'll improve this later. */}
-              <span className="text-sm text-gray-500 block text-right">
-                {message.createdAt instanceof Date ? message.createdAt.toLocaleTimeString() : '...'}
-              </span>
-            </div>
-          ))
-        )}
+        </div>
+
+        <div className="text-right">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-2xl font-bold text-blue-600">
+              {channel.majorCode}
+            </span>
+          </div>
+        </div>
       </div>
 
+      {/* Messages Feed */}
+      <div className="bg-white rounded-lg shadow-lg flex-grow overflow-hidden flex flex-col">
+        <div className="flex-grow overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 ? (
+            <div className="flex-grow flex items-center justify-center text-center py-12">
+              <div>
+                <Sparkles className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  Welcome to {channel.name}!
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  This channel is where professors share career resources, job opportunities,
+                  and industry insights for {channel.name} students.
+                </p>
+                <div className="bg-blue-50 p-4 rounded-lg max-w-md mx-auto">
+                  <p className="text-sm text-blue-800">
+                    <strong>What you'll find here:</strong><br/>
+                    • Industry podcasts and articles<br/>
+                    • Job and internship opportunities<br/>
+                    • Networking tips and events<br/>
+                    • Graduate school guidance
+                  </p>
+                </div>
+                {!isAdmin && (
+                  <p className="text-sm text-gray-400 mt-4">
+                    Only professors can post messages. Students can react and bookmark resources.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages
+                .sort((a, b) => {
+                  // Pin pinned messages to top, then sort by date
+                  if (a.isPinned && !b.isPinned) return -1;
+                  if (!a.isPinned && b.isPinned) return 1;
+
+                  const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+                  const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+                  return bTime - aTime; // Newest first
+                })
+                .map((message) => (
+                  <div
+                    key={message.id}
+                    className={`p-4 rounded-lg shadow-sm border-l-4 ${
+                      message.isPinned 
+                        ? 'bg-blue-50 border-blue-500' 
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    {message.isPinned && (
+                      <div className="flex items-center mb-2 text-blue-600 text-sm font-medium">
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        Pinned Resource
+                      </div>
+                    )}
+
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-blue-600">
+                          {message.authorId === 'system' ? '🏫' : 'P'}
+                        </span>
+                      </div>
+
+                      <div className="flex-grow">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-medium text-gray-900">
+                            {message.authorId === 'system' ? 'Adams State Hub' : 'Professor'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {message.createdAt instanceof Date
+                              ? message.createdAt.toLocaleDateString()
+                              : 'Recently'}
+                          </span>
+                        </div>
+
+                        <p className="text-gray-800 leading-relaxed">{message.content}</p>
+
+                        {/* Reaction buttons would go here */}
+                        <div className="mt-3 flex items-center space-x-4">
+                          <button className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
+                            👍 Like
+                          </button>
+                          <button className="text-sm text-gray-500 hover:text-blue-600 transition-colors">
+                            🔖 Bookmark
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Message Composer for Admins */}
       {isAdmin && (
         <MessageComposer
           channelId={channel.id}
@@ -122,6 +226,15 @@ export default function ChannelPage({ params }: ChannelPageProps) {
           isAdmin={isAdmin}
           onMessagePosted={handleMessagePosted}
         />
+      )}
+
+      {/* Student Info Footer */}
+      {!isAdmin && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg text-center">
+          <p className="text-sm text-gray-600">
+            💡 <strong>Tip:</strong> Bookmark useful resources and check back regularly for new opportunities!
+          </p>
+        </div>
       )}
     </div>
   );
