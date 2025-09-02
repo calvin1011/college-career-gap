@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug } from '@/components/channels/ChannelService';
-import { Channel } from '@/types';
+import { Channel, Message } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useMessages } from '@/hooks/useMessages';
 
 interface ChannelPageProps {
   params: {
@@ -18,12 +19,13 @@ interface ChannelPageProps {
 export default function ChannelPage({ params }: ChannelPageProps) {
   const { user } = useAuth();
   const [channel, setChannel] = useState<Channel | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingChannel, setLoadingChannel] = useState(true);
+  const { messages, loading: loadingMessages } = useMessages(channel?.id || '');
 
   useEffect(() => {
     const fetchChannel = async () => {
       if (!user) {
-        setLoading(false);
+        setLoadingChannel(false);
         return;
       }
       try {
@@ -37,11 +39,13 @@ export default function ChannelPage({ params }: ChannelPageProps) {
         console.error('Error fetching channel:', error);
         toast.error('Failed to load channel.');
       } finally {
-        setLoading(false);
+        setLoadingChannel(false);
       }
     };
     fetchChannel();
   }, [params.channelId, user]);
+
+  const loading = loadingChannel || loadingMessages;
 
   if (loading) {
     return (
@@ -85,8 +89,22 @@ export default function ChannelPage({ params }: ChannelPageProps) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg min-h-[500px] flex items-center justify-center">
-        <p className="text-gray-400">Message Feed Coming Soon...</p>
+      <div className="bg-white rounded-lg shadow-lg min-h-[500px] flex flex-col-reverse p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex-grow flex items-center justify-center">
+            <p className="text-gray-400">No messages yet. Be the first to post!</p>
+          </div>
+        ) : (
+          messages.map((message) => (
+            <div key={message.id} className="bg-gray-50 p-4 rounded-lg shadow-sm">
+              <p className="text-gray-800">{message.content}</p>
+              {/* This is a basic message display. We'll improve this later. */}
+              <span className="text-sm text-gray-500 block text-right">
+                {message.createdAt instanceof Date ? message.createdAt.toLocaleTimeString() : '...'}
+              </span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
