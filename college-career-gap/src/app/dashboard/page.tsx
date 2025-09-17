@@ -7,10 +7,11 @@ import { Channel } from '@/types';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { joinChannel } from '@/components/channels/ChannelService';
-import { Building2, GraduationCap, Users } from 'lucide-react';
+import { Building2, Users } from 'lucide-react';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 import app from '@/services/firebase/config';
 import toast from 'react-hot-toast';
+import {useRouter} from "next/navigation";
 
 // Initialize analytics
 const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
@@ -20,6 +21,7 @@ export default function DashboardPage() {
   const { channels, loadingChannels } = useChannel();
   const [joining, setJoining] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (analytics) {
@@ -36,11 +38,8 @@ export default function DashboardPage() {
 
   const handleRedirect = (channel: Channel) => {
     setRedirecting(true);
-    // In a real app, you would redirect to the channel page
-    // For this example, we'll just show a message.
-    toast.success(`Redirecting to ${channel.name} channel...`);
-    // Example: router.push(`/dashboard/channels/${channel.slug}`);
-    setTimeout(() => setRedirecting(false), 2000);
+    // Redirect to the actual channel page
+    router.push(`/dashboard/channels/${channel.slug}`);
   };
 
   if (loadingChannels) {
@@ -57,7 +56,7 @@ export default function DashboardPage() {
     <div className="container mx-auto py-8">
       <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome, {user?.displayName || 'Student'}!</h1>
       <p className="text-gray-600 mb-8">
-        Your academic major is <span className="font-semibold text-blue-600">{user?.major || 'not set'}</span>. You can join your major&#39;s group to get career guidance.
+        Your academic major is <span className="font-semibold text-blue-600">{user?.major || 'not set'}</span>. You can join your major's group to get career guidance.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
