@@ -9,14 +9,11 @@ import { Users, Lock, MessageCircle, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
+import { useParams } from 'next/navigation';
 
-interface ChannelPageProps {
-  params: {
-    channelId: string;
-  };
-}
-
-export default function ChannelPage({ params }: ChannelPageProps) {
+export default function ChannelPage() {  // Destructure channelId from params
+  const params = useParams();
+  const channelId = params.channelId as string;
   const { user } = useAuth();
   const [channel, setChannel] = useState<Channel | null>(null);
   const [loadingChannel, setLoadingChannel] = useState(true);
@@ -29,7 +26,7 @@ export default function ChannelPage({ params }: ChannelPageProps) {
         return;
       }
       try {
-        const foundChannel = await findChannelBySlug(params.channelId);
+        const foundChannel = await findChannelBySlug(channelId);
         if (foundChannel) {
           setChannel(foundChannel);
         } else {
@@ -43,7 +40,8 @@ export default function ChannelPage({ params }: ChannelPageProps) {
       }
     };
     fetchChannel();
-  }, [params.channelId, user]);
+  // use the channelId variable in the dependency array
+  }, [channelId, user]);
 
   const loading = loadingChannel || loadingMessages;
   const isAdmin = user?.role === 'admin';
