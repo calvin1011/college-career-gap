@@ -26,11 +26,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      {/* new background and text color classes here */}
+      <body
+        className={`${inter.className} bg-brand-slate-100 text-brand-slate-800`}
+        suppressHydrationWarning={true}
+      >
         <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
-            {children}
-          </div>
+          {/* wrapping div is removed. We only need the children. */}
+          {children}
+
           <Toaster
             position="top-center"
             toastOptions={{

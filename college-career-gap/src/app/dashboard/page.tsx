@@ -7,14 +7,45 @@ import { Channel } from '@/types';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { joinChannel } from '@/components/channels/ChannelService';
-import { Building2, Users } from 'lucide-react';
+import {
+  Building2,
+  Users,
+  Briefcase,
+  Code,
+  Dna,
+  FlaskConical,
+  Brain,
+  HeartPulse
+} from 'lucide-react';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 import app from '@/services/firebase/config';
 import toast from 'react-hot-toast';
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
+import { cn } from '@/utils/cn'; // Make sure you have this utility
 
 // Initialize analytics
 const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+// Helper to get an icon based on the major name
+const MajorIcon = ({ majorName }: { majorName: string }) => {
+  switch (majorName) {
+    case 'Business':
+      return <Briefcase className="w-6 h-6 text-brand-blue" />;
+    case 'Computer Science':
+      return <Code className="w-6 h-6 text-brand-blue" />;
+    case 'Biology':
+      return <Dna className="w-6 h-6 text-brand-blue" />;
+    case 'Chemistry':
+      return <FlaskConical className="w-6 h-6 text-brand-blue" />;
+    case 'Psychology':
+      return <Brain className="w-6 h-6 text-brand-blue" />;
+    case 'Kinesiology':
+      return <HeartPulse className="w-6 h-6 text-brand-blue" />;
+    default:
+      return <Building2 className="w-6 h-6 text-brand-blue" />;
+  }
+};
+
 
 export default function DashboardPage() {
   const { user, firebaseUser } = useAuth();
@@ -33,12 +64,14 @@ export default function DashboardPage() {
     if (!firebaseUser || !user) return;
     setJoining(true);
     await joinChannel(channel.id, user.uid);
+    // This is a simple way to refresh the user's channel list.
+    // In a real app, you might update the user context directly.
+    window.location.reload();
     setJoining(false);
   };
 
   const handleRedirect = (channel: Channel) => {
     setRedirecting(true);
-    // Redirect to the actual channel page
     router.push(`/dashboard/channels/${channel.slug}`);
   };
 
@@ -54,42 +87,59 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome, {user?.displayName || 'Student'}!</h1>
-      <p className="text-gray-600 mb-8">
-        Your academic major is <span className="font-semibold text-blue-600">{user?.major || 'not set'}</span>. You can join your major's group to get career guidance.
-      </p>
+      {/* Updated Header Section */}
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-brand-slate-800 mb-2">
+          Welcome, {user?.displayName || 'Student'}!
+        </h1>
+        <p className="text-lg text-brand-slate-700">
+          Your major is <span className="font-semibold text-brand-blue">{user?.major || 'Not Set'}</span>. Explore the channels below to find career resources.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {channels.map((channel) => {
           const isUserMajorChannel = user?.major === channel.name;
           const isMember = userJoinedChannels.includes(channel.id);
-          const channelStyle = isUserMajorChannel ? "ring-2 ring-blue-500 ring-offset-2" : "";
 
           return (
-            <Card key={channel.id} className={`shadow-lg transition-transform hover:scale-[1.02] ${channelStyle}`}>
+            <Card
+              key={channel.id}
+              className={cn(
+                'bg-white rounded-xl shadow-md transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col',
+                {
+                  'bg-blue-50 border-2 border-brand-blue shadow-lg': isUserMajorChannel, // Prominent highlight for user's major
+                }
+              )}
+            >
               <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-6 h-6 text-blue-600" />
-                  </div>
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900">{channel.name}</h3>
-                    <p className="text-sm text-gray-500">Channel Code: {channel.majorCode}</p>
+                    <h3 className="text-xl font-bold text-brand-slate-900">{channel.name}</h3>
+                    <p className="text-sm text-gray-500">Major Code: {channel.majorCode}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <MajorIcon majorName={channel.name} />
                   </div>
                 </div>
+                {isUserMajorChannel && (
+                    <div className="mt-2 text-sm font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full inline-block">
+                        Your Major Channel
+                    </div>
+                )}
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">{channel.description}</p>
-                <div className="flex items-center space-x-4 text-gray-500 text-sm mb-4">
+              <CardContent className="flex-grow flex flex-col">
+                <p className="text-brand-slate-700 mb-4 flex-grow">{channel.description}</p>
+                <div className="flex items-center space-x-4 text-brand-slate-700 text-sm mb-6">
                   <span className="flex items-center">
-                    <Users className="w-4 h-4 mr-1" /> {channel.members.length} members
+                    <Users className="w-4 h-4 mr-1.5" /> {channel.members.length} members
                   </span>
                 </div>
                 {isMember ? (
                   <Button
                     onClick={() => handleRedirect(channel)}
                     loading={redirecting}
-                    className="w-full"
+                    className="w-full mt-auto"
                   >
                     Go to Channel
                   </Button>
@@ -97,7 +147,8 @@ export default function DashboardPage() {
                   <Button
                     onClick={() => handleJoinChannel(channel)}
                     loading={joining}
-                    className="w-full"
+                    className="w-full mt-auto"
+                    variant={isUserMajorChannel ? 'primary' : 'outline'}
                   >
                     Join Group
                   </Button>
