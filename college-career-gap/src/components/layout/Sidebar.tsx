@@ -13,7 +13,7 @@ export default function Sidebar() {
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Explore Channels', href: '/dashboard/explore', icon: Compass },
+    /*{ name: 'Explore Channels', href: '/dashboard/explore', icon: Compass },*/
     // Add more navigation items here as your app grows
   ];
 
