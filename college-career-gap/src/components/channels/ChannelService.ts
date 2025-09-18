@@ -208,7 +208,7 @@ export async function updateUserProfile(
   const userRef = doc(db, 'users', userId);
   let avatarUrl = undefined;
 
-  // upload new profile picture if one is provided
+  // Upload new profile picture if one is provided
   if (profilePic) {
     const storageRef = ref(storage, `avatars/${userId}/${profilePic.name}`);
     const snapshot = await uploadBytes(storageRef, profilePic);
@@ -229,19 +229,20 @@ export async function updateUserProfile(
     lastActiveAt: serverTimestamp(),
   };
 
-  // Only add avatar to update if a new one was uploaded
+  // only add avatar to update if a new one was uploaded
   if (avatarUrl) {
     updatedData.profile.avatar = avatarUrl;
+  }
 
-  // Update the user document
+  // update the user document (This is now OUTSIDE the if block)
   await updateDoc(userRef, updatedData as any);
 
+  // join the user to their major's channel
   if (profileData.major) {
       const channel = await findChannelByMajor(profileData.major as Major);
       if (channel) {
         await joinChannel(channel.id, userId);
       }
-    }
   }
 }
 

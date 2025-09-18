@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, FieldValue } from 'firebase/firestore';
 
 export interface User {
   uid: string;
@@ -8,8 +8,8 @@ export interface User {
   role: 'admin' | 'student';
   isVerified: boolean;
   joinedChannels: string[];
-  createdAt: Date | Timestamp;
-  lastActiveAt: Date | Timestamp;
+  createdAt: Date | Timestamp | FieldValue;
+  lastActiveAt: Date | Timestamp | FieldValue;
   profile: {
     avatar?: string;
     bio?: string;
@@ -36,8 +36,8 @@ export interface Channel {
     autoModeration: boolean;
   };
   members: string[]; // Added members
-  createdAt: Date | Timestamp;
-  updatedAt: Date | Timestamp;
+  createdAt: Date | Timestamp | FieldValue;
+  updatedAt: Date | Timestamp | FieldValue;
 }
 
 export interface Message {
@@ -56,8 +56,8 @@ export interface Message {
   };
   isPinned: boolean;
   isEdited: boolean;
-  editedAt?: Date | Timestamp;
-  createdAt: Date | Timestamp;
+  editedAt?: Date | Timestamp | FieldValue;
+  createdAt: Date | Timestamp | FieldValue;
 }
 
 export interface LinkPreview {
