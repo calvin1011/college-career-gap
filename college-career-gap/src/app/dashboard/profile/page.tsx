@@ -18,6 +18,7 @@ export default function ProfileSetupPage() {
     displayName: '',
     major: '',
     graduationYear: '',
+    university:'',
   });
   const [profilePic, setProfilePic] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ export default function ProfileSetupPage() {
         displayName: user.displayName || '',
         major: user.major || '',
         graduationYear: user.profile?.graduationYear?.toString() || '',
+        university: user.profile?.university || '',
       });
     }
   }, [user]);
@@ -48,7 +50,7 @@ export default function ProfileSetupPage() {
       await updateUserProfile(user.uid, formData, profilePic);
       toast.success('Profile updated successfully!');
       // Manually reload to ensure AuthContext picks up the new user data
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (error) {
       toast.error('Failed to update profile.');
       console.error(error);
@@ -101,6 +103,13 @@ export default function ProfileSetupPage() {
             label="Display Name"
             value={formData.displayName}
             onChange={handleChange('displayName')}
+            required
+          />
+
+           <Input
+            label="University"
+            value={formData.university}
+            onChange={handleChange('university')}
             required
           />
 

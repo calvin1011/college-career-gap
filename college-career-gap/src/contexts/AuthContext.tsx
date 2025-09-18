@@ -22,7 +22,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string, major: Major) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, major: Major | '') => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return email.toLowerCase().endsWith('.edu');
   };
 
-  const signUp = async (email: string, password: string, displayName: string, major: Major) => {
+  const signUp = async (email: string, password: string, displayName: string, major: Major | '') => {
     if (!validateEducationalEmail(email)) {
       throw new Error('Please use your educational (.edu) email address');
     }
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userProfile: Omit<User, 'uid'> = {
         email,
         displayName: displayName, // Keep display name from sign-up
-        major: '', // Intentionally leave blank
+        major: major || '',
         role: 'student',
         isVerified: false,
         joinedChannels: [],

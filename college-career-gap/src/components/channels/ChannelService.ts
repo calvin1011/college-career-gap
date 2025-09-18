@@ -202,7 +202,7 @@ export async function seedChannels() {
  */
 export async function updateUserProfile(
   userId: string,
-  profileData: { displayName: string; major: string; graduationYear: string },
+  profileData: { displayName: string; major: string; graduationYear: string; university: string; },
   profilePic: File | null
 ) {
   const userRef = doc(db, 'users', userId);
@@ -221,7 +221,10 @@ export async function updateUserProfile(
     displayName: profileData.displayName,
     major: profileData.major,
     profile: {
-      graduationYear: profileData.graduationYear ? parseInt(profileData.graduationYear, 10) : undefined,
+      graduationYear: profileData.graduationYear
+        ? parseInt(profileData.graduationYear, 10)
+        : undefined,
+      university: profileData.university,
     },
     lastActiveAt: serverTimestamp(),
   };
@@ -229,11 +232,20 @@ export async function updateUserProfile(
   // Only add avatar to update if a new one was uploaded
   if (avatarUrl) {
     updatedData.profile.avatar = avatarUrl;
-  }
 
   // Update the user document
-  await updateDoc(userRef, updatedData as any); // Use 'as any' to avoid deep partial type issues
+  await updateDoc(userRef, updatedData as any);
+
+  if (profileData.major) {
+      const channel = await findChannelByMajor(profileData.major as Major);
+      if (channel) {
+        await joinChannel(channel.id, userId);
+      }
+    }
+  }
 }
+
+
 
 /**
  * Fetches all available channels from Firestore.

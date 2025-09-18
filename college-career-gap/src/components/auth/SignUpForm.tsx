@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
 
 interface SignUpFormProps {
@@ -18,7 +17,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     password: '',
     confirmPassword: '',
     displayName: '',
-    major: ''
   });
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -34,7 +32,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     if (formData.password.length < 8) return 'Password must be at least 8 characters';
     if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
     if (!formData.displayName) return 'Display name is required';
-    if (!formData.major) return 'Please select your major';
     return null;
   };
 
@@ -49,11 +46,12 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
     try {
       setLoading(true);
+      // Pass an empty string for the major, as it will be set on the profile page
       await signUp(
         formData.email,
         formData.password,
         formData.displayName,
-        formData.major
+        ''
       );
       setShowSuccess(true);
     } catch (error: any) {
@@ -136,25 +134,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             data-testid="displayname-input"
             required
           />
-
-          <div className="space-y-2">
-            <label htmlFor="major" className="block text-sm font-medium text-gray-700">
-              Major
-            </label>
-            <select
-              id="major"
-              value={formData.major}
-              onChange={handleChange('major')}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              data-testid="major-select"
-              required
-            >
-              <option value="">Select your major</option>
-              {SUPPORTED_MAJORS.map(major => (
-                <option key={major} value={major}>{major}</option>
-              ))}
-            </select>
-          </div>
 
           <Input
             type="password"
