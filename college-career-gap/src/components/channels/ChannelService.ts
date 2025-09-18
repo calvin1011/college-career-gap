@@ -13,11 +13,16 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
+  arrayRemove,
 } from 'firebase/firestore';
-import { Channel, Major, SUPPORTED_MAJORS, Message } from '@/types';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Channel, Major, SUPPORTED_MAJORS, Message, User } from '@/types';
 import toast from 'react-hot-toast';
 import { db } from '@/services/firebase/config';
 import { sanitizeMessageContent } from '@/utils/validation';
+import app from '@/services/firebase/config';
+
+const storage = getStorage(app);
 
 // Seed messages for each major
 const SEED_MESSAGES = {
@@ -190,6 +195,44 @@ export async function seedChannels() {
       console.error(`Error seeding channel ${major}:`, error);
     }
   }
+}
+
+/**
+ * Updates a user's profile information and optionally uploads a new profile picture.
+ */
+export async function updateUserProfile(
+  userId: string,
+  profileData: { displayName: string; major: string; graduationYear: string },
+  profilePic: File | null
+) {
+  const userRef = doc(db, 'users', userId);
+  let avatarUrl = undefined;
+
+  // upload new profile picture if one is provided
+  if (profilePic) {
+    const storageRef = ref(storage, `avatars/${userId}/${profilePic.name}`);
+    const snapshot = await uploadBytes(storageRef, profilePic);
+    avatarUrl = await getDownloadURL(snapshot.ref);
+    toast.success('Profile picture uploaded!');
+  }
+
+  // prepare the data to be updated in Firestore
+  const updatedData: Partial<User> & { profile: Partial<User['profile']> } = {
+    displayName: profileData.displayName,
+    major: profileData.major,
+    profile: {
+      graduationYear: profileData.graduationYear ? parseInt(profileData.graduationYear, 10) : undefined,
+    },
+    lastActiveAt: serverTimestamp(),
+  };
+
+  // Only add avatar to update if a new one was uploaded
+  if (avatarUrl) {
+    updatedData.profile.avatar = avatarUrl;
+  }
+
+  // Update the user document
+  await updateDoc(userRef, updatedData as any); // Use 'as any' to avoid deep partial type issues
 }
 
 /**

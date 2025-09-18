@@ -47,46 +47,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (userCredential) => {
       setFirebaseUser(userCredential);
 
-      if (userCredential) {
+      if (userCredential && userCredential.emailVerified) {
         try {
           const userDocRef = doc(db, 'users', userCredential.uid);
           const userDoc = await getDoc(userDocRef);
 
-          if (!userDoc.exists()) {
-            // We set a basic user object to prevent premature redirects and continue with account creation.
-            const newUser: User = {
-              uid: userCredential.uid,
-              email: userCredential.email as string,
-              displayName: userCredential.displayName || 'New User',
-              major: '',
-              role: 'student',
-              isVerified: userCredential.emailVerified,
-              joinedChannels: [],
-              createdAt: new Date(),
-              lastActiveAt: new Date(),
-              profile: {},
-            };
-            await setDoc(userDocRef, newUser);
-            setUser(newUser);
-          } else {
-            // User exists in Firestore, populate the user state with profile data
+          if (userDoc.exists()) {
             const userData = { uid: userDoc.id, ...userDoc.data() } as User;
             setUser(userData);
+
+            if (!userData.major) {
+              if (window.location.pathname !== '/dashboard/profile') {
+                router.push('/dashboard/profile');
+              }
+            } else {
+              if (window.location.pathname === '/dashboard/profile') {
+                router.push('/dashboard');
+              }
+            }
+          } else {
+             router.push('/dashboard/profile');
           }
         } catch (error) {
-          console.error('Error fetching or creating user profile:', error);
+          console.error('Error fetching user profile:', error);
           setUser(null);
         }
       } else {
-        // No user is logged in
-        setFirebaseUser(null);
         setUser(null);
       }
       setLoading(false);
     });
 
-    return unsubscribe;
-  }, []);
+    return () => unsubscribe();
+  }, [router]);
 
   const validateEducationalEmail = (email: string): boolean => {
     return email.toLowerCase().endsWith('.edu');
@@ -103,10 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       await sendEmailVerification(result.user);
 
+      // We now create a user profile with an empty major,
+      // forcing them to the profile setup page on first login after verification.
       const userProfile: Omit<User, 'uid'> = {
         email,
-        displayName,
-        major,
+        displayName: displayName, // Keep display name from sign-up
+        major: '', // Intentionally leave blank
         role: 'student',
         isVerified: false,
         joinedChannels: [],
@@ -116,12 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       await setDoc(doc(db, 'users', result.user.uid), userProfile);
-
-      const channel = await findChannelByMajor(major);
-      if (channel) {
-        await joinChannel(channel.id, result.user.uid);
-      }
-
       toast.success('Account created! Please check your email to verify your account.');
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -134,9 +123,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      if (!userCredential.user.emailVerified) {
+          toast.error('Please verify your email before signing in.');
+          await signOut(auth);
+          return;
+      }
+
       toast.success('Welcome back!');
-      router.push('/dashboard');
+      // **NO REDIRECT HERE** - The useEffect will handle it.
     } catch (error: any) {
       console.error('Sign in error:', error);
       throw new Error(error.message || 'Failed to sign in');
