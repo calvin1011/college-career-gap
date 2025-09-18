@@ -1,21 +1,23 @@
-import { db } from '@/services/firebase/config';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  query, 
-  where, 
-  updateDoc, 
-  arrayUnion, 
-  runTransaction, 
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  getDoc,
+  query,
+  where,
+  updateDoc,
+  arrayUnion,
+  runTransaction,
   increment,
   addDoc,
-  serverTimestamp 
+  serverTimestamp,
+  Transaction,
 } from 'firebase/firestore';
 import { Channel, Major, SUPPORTED_MAJORS, Message } from '@/types';
 import toast from 'react-hot-toast';
+import { db } from '@/services/firebase/config';
+import { sanitizeMessageContent } from '@/utils/validation';
 
 // Seed messages for each major
 const SEED_MESSAGES = {
@@ -225,6 +227,62 @@ export async function findChannelBySlug(slug: string): Promise<Channel | null> {
 }
 
 /**
+ * Posts a new message to a channel. (Admin only)
+ */
+export async function postMessage(
+  channelId: string,
+  authorId: string,
+  content: string
+): Promise<Message> {
+  const channelRef = doc(db, 'channels', channelId);
+  const messagesRef = collection(db, 'messages');
+
+  try {
+    // sanitize the message content before posting
+    const sanitizedContent = sanitizeMessageContent(content);
+
+    const newMessageRef = doc(messagesRef);
+
+    await runTransaction(db, async (transaction: Transaction) => {
+      // get the current channel data
+      const channelDoc = await transaction.get(channelRef);
+      if (!channelDoc.exists()) {
+        throw new Error('Channel does not exist!');
+      }
+
+      // create the new message object
+      const newMessage: Omit<Message, 'id'> = {
+        channelId,
+        authorId,
+        content: sanitizedContent,
+        type: 'text',
+        reactions: {},
+        isPinned: false,
+        isEdited: false,
+        createdAt: serverTimestamp() as any, // Let the server set the timestamp
+      };
+
+      // automically create the message and update the channel
+      transaction.set(newMessageRef, newMessage);
+      transaction.update(channelRef, {
+        messageCount: increment(1),
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+    // after the transaction is successful, return the newly created message
+    return {
+      id: newMessageRef.id,
+      ...(await getDoc(newMessageRef)).data(),
+    } as Message;
+  } catch (error: any) {
+    console.error('Error posting message:', error);
+    toast.error(error.message || 'Failed to post message.');
+    throw error;
+  }
+}
+
+/**
  * Joins a user to a specific channel.
  */
 export async function joinChannel(channelId: string, userId: string) {
@@ -276,6 +334,6 @@ export async function joinChannel(channelId: string, userId: string) {
       toast.error('Failed to join channel. Please try again.');
     }
     
-    throw error; // Re-throw so the calling component can handle it
+    throw error;
   }
 }

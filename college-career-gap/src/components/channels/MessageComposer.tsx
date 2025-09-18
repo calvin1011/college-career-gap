@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Message } from '@/types';
 import toast from 'react-hot-toast';
+import { postMessage } from './ChannelService';
 
 interface MessageComposerProps {
   channelId: string;
@@ -13,7 +14,12 @@ interface MessageComposerProps {
   onMessagePosted: (message: Message) => void;
 }
 
-export function MessageComposer({ channelId, userId, isAdmin, onMessagePosted }: MessageComposerProps) {
+export function MessageComposer({
+  channelId,
+  userId,
+  isAdmin,
+  onMessagePosted,
+}: MessageComposerProps) {
   const [content, setContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
@@ -24,28 +30,12 @@ export function MessageComposer({ channelId, userId, isAdmin, onMessagePosted }:
     }
     setIsPosting(true);
     try {
-      // In a real application, this would be a call to a service
-      // that posts the message to Firestore.
-      // For now, we'll simulate the behavior.
-      const newMessage: Message = {
-        id: `msg-${Date.now()}`,
-        channelId: channelId,
-        authorId: userId,
-        content: content,
-        type: 'text',
-        reactions: {},
-        isPinned: false,
-        isEdited: false,
-        createdAt: new Date(),
-      };
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const newMessage = await postMessage(channelId, userId, content);
       onMessagePosted(newMessage);
       setContent('');
       toast.success('Resource shared successfully!');
     } catch (error) {
       console.error('Error posting message:', error);
-      toast.error('Failed to post message.');
     } finally {
       setIsPosting(false);
     }
