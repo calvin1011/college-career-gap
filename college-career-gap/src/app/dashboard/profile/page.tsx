@@ -20,7 +20,7 @@ export default function ProfileSetupPage() {
     graduationYear: '',
     university:'',
   });
-  const [profilePic, setProfilePic] = useState<File | null>(null);
+  //const [profilePic, setProfilePic] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function ProfileSetupPage() {
 
     setLoading(true);
     try {
-      await updateUserProfile(user.uid, formData, profilePic);
+      await updateUserProfile(user.uid, formData, null);
       toast.success('Profile updated successfully!');
       // Manually reload to ensure AuthContext picks up the new user data
       router.push('/dashboard');
@@ -63,14 +63,14 @@ export default function ProfileSetupPage() {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /*const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setProfilePic(e.target.files[0]);
     }
-  };
+  };*/
 
   if (authLoading) {
-      return null; // Avoid flicker
+      return null;
   }
 
   return (
@@ -83,7 +83,7 @@ export default function ProfileSetupPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex items-center space-x-4">
+          {/*<div className="flex items-center space-x-4">
             <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
               {profilePic ? (
                 <img src={URL.createObjectURL(profilePic)} alt="Profile preview" className="w-full h-full object-cover" />
@@ -97,7 +97,7 @@ export default function ProfileSetupPage() {
               accept="image/*"
               className="flex-1"
             />
-          </div>
+          </div>*/}
 
           <Input
             label="Display Name"

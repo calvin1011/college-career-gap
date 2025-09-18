@@ -245,8 +245,6 @@ export async function updateUserProfile(
   }
 }
 
-
-
 /**
  * Fetches all available channels from Firestore.
  */
