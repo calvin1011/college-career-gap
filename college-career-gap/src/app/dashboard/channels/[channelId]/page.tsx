@@ -2,22 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { findChannelBySlug } from '@/components/channels/ChannelService';
+import { findChannelBySlug, leaveChannel } from '@/components/channels/ChannelService';
 import { Channel, Message } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Users, Lock, MessageCircle, Sparkles } from 'lucide-react';
+import {Users, Lock, MessageCircle, Sparkles, LogOut, User} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import Link from "next/link";
 
-export default function ChannelPage() {  // Destructure channelId from params
+export default function ChannelPage() {
   const params = useParams();
   const channelId = params.channelId as string;
   const { user } = useAuth();
   const [channel, setChannel] = useState<Channel | null>(null);
   const [loadingChannel, setLoadingChannel] = useState(true);
+  const [leavingChannel, setLeavingChannel] = useState(false);
   const { messages, loading: loadingMessages } = useMessages(channel?.id || '');
+  const router = useRouter();
 
   useEffect(() => {
     const fetchChannel = async () => {
@@ -42,6 +46,21 @@ export default function ChannelPage() {  // Destructure channelId from params
     fetchChannel();
   // use the channelId variable in the dependency array
   }, [channelId, user]);
+
+  const handleLeaveChannel = async () => {
+    if (!user || !channel) return;
+
+    if (confirm("Are you sure you want to leave this channel? You'll need to update your major in profile settings.")) {
+      setLeavingChannel(true);
+      try {
+        await leaveChannel(channel.id, user.uid);
+        router.push('/dashboard/profile');
+      } catch (error) {
+        console.error('Error leaving channel:', error);
+        setLeavingChannel(false);
+      }
+    }
+  };
 
   const loading = loadingChannel || loadingMessages;
   const isAdmin = user?.role === 'admin';
@@ -110,12 +129,24 @@ export default function ChannelPage() {  // Destructure channelId from params
           </div>
         </div>
 
-        <div className="text-right">
+        <div className="flex flex-col items-end space-y-3">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
             <span className="text-2xl font-bold text-blue-600">
               {channel.majorCode}
             </span>
           </div>
+          {!isAdmin && (
+            <Link href="/dashboard/profile">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-gray-700 hover:text-gray-800 hover:bg-gray-100"
+              >
+                <User className="w-4 h-4 mr-1" />
+                Change Major
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

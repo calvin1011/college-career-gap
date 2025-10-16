@@ -10,12 +10,10 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
-import { findChannelByMajor, joinChannel } from '@/components/channels/ChannelService';
-import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
@@ -41,45 +39,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (userCredential) => {
-      setFirebaseUser(userCredential);
-
-      if (userCredential && userCredential.emailVerified) {
-        try {
-          const userDocRef = doc(db, 'users', userCredential.uid);
-          const userDoc = await getDoc(userDocRef);
-
-          if (userDoc.exists()) {
-            const userData = { uid: userDoc.id, ...userDoc.data() } as User;
-            setUser(userData);
-
-            if (!userData.major) {
-              if (window.location.pathname !== '/dashboard/profile') {
-                router.push('/dashboard/profile');
-              }
-            } else {
-              if (window.location.pathname === '/dashboard/profile') {
-                router.push('/dashboard');
-              }
-            }
-          } else {
-             router.push('/dashboard/profile');
-          }
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
+    const unsubscribeAuth = onAuthStateChanged(auth, (userCredential) => {
+      setFirebaseUser(userCredential || null);
+      if (!userCredential) setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [router]);
+    let unsubscribeFirestore: (() => void) | undefined;
+
+    if (firebaseUser) {
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      unsubscribeFirestore = onSnapshot(
+        userDocRef,
+        (doc) => {
+          if (doc.exists()) {
+            setUser({ uid: doc.id, ...doc.data() } as User);
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error listening to user document:", error);
+          setUser(null);
+          setLoading(false);
+        }
+      );
+    } else {
+      setUser(null);
+    }
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+    };
+  }, [firebaseUser]);
+
 
   const validateEducationalEmail = (email: string): boolean => {
     return email.toLowerCase().endsWith('.edu');
@@ -91,16 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      setLoading(true);
-
       const result = await createUserWithEmailAndPassword(auth, email, password);
       await sendEmailVerification(result.user);
 
-      // We now create a user profile with an empty major,
-      // forcing them to the profile setup page on first login after verification.
       const userProfile: Omit<User, 'uid'> = {
         email,
-        displayName: displayName, // Keep display name from sign-up
+        displayName: displayName,
         major: major || '',
         role: 'student',
         isVerified: false,
@@ -113,53 +107,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setDoc(doc(db, 'users', result.user.uid), userProfile);
       toast.success('Account created! Please check your email to verify your account.');
     } catch (error: any) {
-      console.error('Sign up error:', error);
       throw new Error(error.message || 'Failed to create account');
-    } finally {
-      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-      if (!userCredential.user.emailVerified) {
-          toast.error('Please verify your email before signing in.');
-          await signOut(auth);
-          return;
-      }
-
-      toast.success('Welcome back!');
-      // **NO REDIRECT HERE** - The useEffect will handle it.
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      throw new Error(error.message || 'Failed to sign in');
-    } finally {
-      setLoading(false);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    if (!userCredential.user.emailVerified) {
+        toast.error('Please verify your email before signing in.');
+        await signOut(auth);
+        throw new Error('Email not verified');
     }
+    toast.success('Welcome back!');
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.push('/');
-      toast.success('Signed out successfully');
-    } catch (error: any) {
-      console.error('Sign out error:', error);
-      throw new Error(error.message || 'Failed to sign out');
-    }
+    await signOut(auth);
+    setUser(null); // Explicitly clear local user state on sign out
+    setFirebaseUser(null);
+    toast.success('Signed out successfully');
   };
 
   const resetPassword = async (email: string) => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success('Password reset email sent');
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      throw new Error(error.message || 'Failed to send password reset email');
-    }
+    await sendPasswordResetEmail(auth, email);
+    toast.success('Password reset email sent');
   };
 
   const value = {

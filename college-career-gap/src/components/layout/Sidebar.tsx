@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, Home, School, CalendarDays, User } from 'lucide-react';
+import { LogOut, Home, School, CalendarDays, User, Users } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
@@ -13,9 +13,10 @@ export default function Sidebar() {
   const router = useRouter();
 
   const majorSlug = user?.major ? user.major.toLowerCase().replace(/\s/g, '-') : '';
+  const hasMajorChannel = user?.major && user.joinedChannels.includes(majorSlug);
 
   const navItems = [
-    { name: 'My Channel', href: `/dashboard/channels/${majorSlug}`, icon: Home },
+    ...(hasMajorChannel ? [{ name: 'My Major Channel', href: `/dashboard/channels/${majorSlug}`, icon: Home }] : []),
     { name: 'Profile Settings', href: '/dashboard/profile', icon: User },
   ];
 
@@ -32,7 +33,7 @@ export default function Sidebar() {
     <div className="flex flex-col w-64 bg-gray-900 text-white min-h-screen">
       {/* Logo */}
       <div className="flex items-center justify-center h-20 border-b border-gray-800">
-        <span className="text-xl font-bold">Resource Hub</span>
+        <Link href="/dashboard" className="text-xl font-bold">Resource Hub</Link>
       </div>
 
       {/* User Profile Section */}
@@ -71,6 +72,21 @@ export default function Sidebar() {
             </div>
           )}
 
+          {!hasMajorChannel && user?.major && (
+            <div className="mt-3 p-2 bg-yellow-900/30 border border-yellow-800/50 rounded-md text-xs text-yellow-300">
+              <p className="flex items-center">
+                <Users className="w-3 h-3 mr-1 flex-shrink-0" />
+                Not in any channel
+              </p>
+              <Link
+                href="/dashboard/profile"
+                className="block mt-2 text-center text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-md"
+              >
+                Join Major Channel
+              </Link>
+            </div>
+          )}
+
           <Link
             href="/dashboard/profile"
             className="block w-full text-center text-xs text-blue-400 hover:text-blue-300 mt-4"
@@ -82,6 +98,17 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-1">
+        <Link
+          href="/dashboard"
+          className={cn(
+            'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+            { 'bg-blue-600 text-white': pathname === '/dashboard' }
+          )}
+        >
+          <Home className="w-5 h-5 mr-3" />
+          <span>Dashboard</span>
+        </Link>
+
         {navItems.map((item) => (
           <Link
             key={item.name}

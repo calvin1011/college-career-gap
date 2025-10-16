@@ -8,12 +8,12 @@ import {
   where,
   updateDoc,
   arrayUnion,
+  arrayRemove,
   runTransaction,
   increment,
   addDoc,
   serverTimestamp,
   Transaction,
-  arrayRemove,
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Channel, Major, SUPPORTED_MAJORS, Message, User } from '@/types';
@@ -198,51 +198,185 @@ export async function seedChannels() {
 }
 
 /**
- * Updates a user's profile information and optionally uploads a new profile picture.
+ * Removes a user from a specific channel.
  */
-export async function updateUserProfile(
+export async function leaveChannel(channelId: string, userId: string) {
+  try {
+    const channelRef = doc(db, 'channels', channelId);
+    const userRef = doc(db, 'users', userId);
+
+    await runTransaction(db, async (transaction) => {
+      const channelDoc = await transaction.get(channelRef);
+      const userDoc = await transaction.get(userRef);
+
+      if (!channelDoc.exists()) {
+        throw new Error("Channel does not exist!");
+      }
+
+      if (!userDoc.exists()) {
+        throw new Error("User does not exist!");
+      }
+
+      const channelData = channelDoc.data() as Channel;
+
+      // Check if user is a member
+      if (!channelData.members?.includes(userId)) {
+        throw new Error("You're not a member of this channel!");
+      }
+
+      // Atomically remove the user from the channel and update the member count
+      transaction.update(channelRef, {
+        members: arrayRemove(userId),
+        memberCount: increment(-1),
+        updatedAt: serverTimestamp()
+      });
+
+      // Atomically remove the channel from the user's joined channels
+      transaction.update(userRef, {
+        joinedChannels: arrayRemove(channelId),
+        lastActiveAt: serverTimestamp()
+      });
+    });
+
+    toast.success(`You've left the ${channelId.replace('-', ' ')} channel.`);
+  } catch (error: any) {
+    console.error('Error leaving channel:', error);
+    toast.error(error.message || 'Failed to leave channel. Please try again.');
+    throw error;
+  }
+}
+
+/**
+ * Atomically updates a user's profile and handles changing their major channel.
+ * This includes leaving the old channel and joining the new one.
+ */
+export async function updateUserProfileAndMajor(
   userId: string,
-  profileData: { displayName: string; major: string; graduationYear: string; university: string; },
-  profilePic: File | null
+  profileData: { displayName: string; major: string; graduationYear: string; university: string; }
 ) {
   const userRef = doc(db, 'users', userId);
-  let avatarUrl = undefined;
+  const newMajor = profileData.major as Major;
 
-  // Upload new profile picture if one is provided
-  if (profilePic) {
-    const storageRef = ref(storage, `avatars/${userId}/${profilePic.name}`);
-    const snapshot = await uploadBytes(storageRef, profilePic);
-    avatarUrl = await getDownloadURL(snapshot.ref);
-    toast.success('Profile picture uploaded!');
-  }
+  return runTransaction(db, async (transaction) => {
+    // 1. Get current user data
+    const userDoc = await transaction.get(userRef);
+    if (!userDoc.exists()) throw new Error("User not found!");
 
-  // prepare the data to be updated in Firestore
-  const updatedData: Partial<User> & { profile: Partial<User['profile']> } = {
-    displayName: profileData.displayName,
-    major: profileData.major,
-    profile: {
-      graduationYear: profileData.graduationYear
-        ? parseInt(profileData.graduationYear, 10)
-        : undefined,
-      university: profileData.university,
-    },
-    lastActiveAt: serverTimestamp(),
-  };
+    const currentUserData = userDoc.data() as User;
+    const oldMajor = currentUserData.major as Major;
 
-  // only add avatar to update if a new one was uploaded
-  if (avatarUrl) {
-    updatedData.profile.avatar = avatarUrl;
-  }
+    const majorHasChanged = oldMajor !== newMajor;
 
-  // update the user document (This is now OUTSIDE the if block)
-  await updateDoc(userRef, updatedData as any);
-
-  // join the user to their major's channel
-  if (profileData.major) {
-      const channel = await findChannelByMajor(profileData.major as Major);
-      if (channel) {
-        await joinChannel(channel.id, userId);
+    // 2. Handle leaving the old channel if the major has changed
+    if (majorHasChanged && oldMajor) {
+      const oldChannel = await findChannelByMajor(oldMajor);
+      if (oldChannel) {
+        const oldChannelRef = doc(db, 'channels', oldChannel.id);
+        transaction.update(oldChannelRef, {
+          members: arrayRemove(userId),
+          memberCount: increment(-1),
+        });
       }
+    }
+
+    // 3. Find and join the new channel
+    const newChannel = await findChannelByMajor(newMajor);
+    if (!newChannel) throw new Error(`Channel for major "${newMajor}" not found.`);
+
+    const newChannelRef = doc(db, 'channels', newChannel.id);
+    transaction.update(newChannelRef, {
+      members: arrayUnion(userId),
+      memberCount: increment(1),
+    });
+
+    // 4. Prepare and commit the final user document update
+    const userUpdateData = {
+      displayName: profileData.displayName,
+      major: newMajor,
+      'profile.graduationYear': profileData.graduationYear ? parseInt(profileData.graduationYear, 10) : undefined,
+      'profile.university': profileData.university,
+      lastActiveAt: serverTimestamp(),
+      // Enforce the "one channel" rule by setting the array directly
+      joinedChannels: [newChannel.id],
+    };
+
+    transaction.update(userRef, userUpdateData);
+
+    // Return the new channel so the UI can redirect
+    return newChannel;
+  });
+}
+/**
+ * Joins a user to their major's channel, with improved error handling.
+ */
+export async function joinMajorChannel(userId: string, major: Major): Promise<boolean> {
+  try {
+    console.log(`Attempting to join ${major} channel for user ${userId}`);
+
+    // Get user document to check if they're already in the channel
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      console.error("User document not found");
+      return false;
+    }
+
+    const userData = userDoc.data() as User;
+
+    // Find the channel for the major
+    const channel = await findChannelByMajor(major);
+
+    if (!channel) {
+      console.error(`Channel for major ${major} not found`);
+      return false;
+    }
+
+    // Check if user is already a member of this channel
+    if (userData.joinedChannels?.includes(channel.id)) {
+      console.log(`User is already a member of the ${major} channel`);
+      return true; // Already joined, consider it a success
+    }
+
+    console.log(`Joining channel ${channel.id} for user ${userId}`);
+
+    // Try to join the channel
+    try {
+      await joinChannel(channel.id, userId);
+      console.log(`Successfully joined channel ${channel.id}`);
+      return true;
+    } catch (joinError) {
+      console.error("Error joining channel:", joinError);
+
+      // If joining fails, try a manual update as fallback
+      try {
+        console.log("Attempting manual channel join as fallback...");
+
+        const channelRef = doc(db, 'channels', channel.id);
+
+        // Update user document to include the channel
+        await updateDoc(userRef, {
+          joinedChannels: arrayUnion(channel.id),
+          lastActiveAt: serverTimestamp()
+        });
+
+        // Update channel document to include the user
+        await updateDoc(channelRef, {
+          members: arrayUnion(userId),
+          memberCount: increment(1),
+          updatedAt: serverTimestamp()
+        });
+
+        console.log("Manual channel join successful");
+        return true;
+      } catch (fallbackError) {
+        console.error("Fallback join attempt failed:", fallbackError);
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error("Error in joinMajorChannel:", error);
+    return false;
   }
 }
 

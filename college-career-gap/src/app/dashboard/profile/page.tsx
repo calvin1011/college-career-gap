@@ -5,10 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { SUPPORTED_MAJORS } from '@/types';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/Card';
+import { Major, SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
-import { updateUserProfile } from '@/components/channels/ChannelService';
+// --- FIX IS HERE: Import the new function ---
+import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
 
 export default function ProfileSetupPage() {
   const { user, loading: authLoading } = useAuth();
@@ -18,10 +19,10 @@ export default function ProfileSetupPage() {
     displayName: '',
     major: '',
     graduationYear: '',
-    university:'',
+    university: '',
   });
-  //const [profilePic, setProfilePic] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isChangingMajor, setIsChangingMajor] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -31,6 +32,9 @@ export default function ProfileSetupPage() {
         graduationYear: user.profile?.graduationYear?.toString() || '',
         university: user.profile?.university || '',
       });
+      if (user.major && user.joinedChannels.length === 0) {
+        setIsChangingMajor(true);
+      }
     }
   }, [user]);
 
@@ -41,19 +45,33 @@ export default function ProfileSetupPage() {
       return;
     }
     if (!formData.major || !formData.displayName) {
-        toast.error('Please fill out all required fields.');
-        return;
+      toast.error('Display Name and Major are required.');
+      return;
     }
 
     setLoading(true);
+
     try {
-      await updateUserProfile(user.uid, formData, null);
-      toast.success('Profile updated successfully!');
-      // Manually reload to ensure AuthContext picks up the new user data
-      router.push('/dashboard');
-    } catch (error) {
-      toast.error('Failed to update profile.');
-      console.error(error);
+      const previousMajor = user.major;
+      const newMajor = formData.major;
+
+      // --- FIX IS HERE: Call the new function ---
+      const newChannel = await updateUserProfileAndMajor(user.uid, formData);
+
+      if (previousMajor && previousMajor !== newMajor) {
+        toast.success(`Successfully changed major to ${newMajor}!`);
+      } else {
+        toast.success('Profile updated successfully!');
+      }
+
+      if (newChannel?.slug) {
+        router.push(`/dashboard/channels/${newChannel.slug}`);
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -63,42 +81,29 @@ export default function ProfileSetupPage() {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  /*const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePic(e.target.files[0]);
-    }
-  };*/
-
   if (authLoading) {
-      return null;
+    return null;
   }
 
   return (
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Complete Your Profile</h2>
-          <p className="text-gray-600">Tell us a bit more about yourself to get started.</p>
+          {isChangingMajor ? (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900">Change Your Major</h2>
+              <p className="text-gray-600">Select your new major to access relevant resources</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900">Complete Your Profile</h2>
+              <p className="text-gray-600">Tell us a bit more about yourself to get started.</p>
+            </>
+          )}
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/*<div className="flex items-center space-x-4">
-            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-              {profilePic ? (
-                <img src={URL.createObjectURL(profilePic)} alt="Profile preview" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-gray-500">Avatar</span>
-              )}
-            </div>
-            <Input
-              type="file"
-              onChange={handleFileChange}
-              accept="image/*"
-              className="flex-1"
-            />
-          </div>*/}
-
           <Input
             label="Display Name"
             value={formData.displayName}
@@ -106,7 +111,7 @@ export default function ProfileSetupPage() {
             required
           />
 
-           <Input
+          <Input
             label="University"
             value={formData.university}
             onChange={handleChange('university')}
@@ -127,6 +132,11 @@ export default function ProfileSetupPage() {
                 <option key={major} value={major}>{major}</option>
               ))}
             </select>
+            {isChangingMajor && (
+              <p className="text-sm text-blue-600 mt-1">
+                You'll be added to your new major's channel automatically.
+              </p>
+            )}
           </div>
 
           <Input
@@ -138,10 +148,15 @@ export default function ProfileSetupPage() {
           />
 
           <Button type="submit" className="w-full" loading={loading}>
-            Save and Continue
+            {isChangingMajor ? 'Save & Join New Channel' : 'Save and Continue'}
           </Button>
         </form>
       </CardContent>
+      {isChangingMajor && (
+        <CardFooter className="bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-500 py-4">
+          Changing your major will remove you from your current channel and add you to your new major's channel.
+        </CardFooter>
+      )}
     </Card>
   );
 }
