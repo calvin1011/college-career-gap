@@ -10,17 +10,18 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, runTransaction, arrayUnion, increment } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
+import { findChannelByMajor } from '@/components/channels/ChannelService';
 
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string, major: Major | '') => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
@@ -50,80 +51,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (firebaseUser) {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
-      unsubscribeFirestore = onSnapshot(
-        userDocRef,
-        (doc) => {
-          if (doc.exists()) {
-            setUser({ uid: doc.id, ...doc.data() } as User);
-          } else {
-            setUser(null);
-          }
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error listening to user document:", error);
-          setUser(null);
-          setLoading(false);
-        }
-      );
+      unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
+        setUser(doc.exists() ? { uid: doc.id, ...doc.data() } as User : null);
+        setLoading(false);
+      }, (error) => {
+        console.error("Error listening to user document:", error);
+        setUser(null);
+        setLoading(false);
+      });
     } else {
       setUser(null);
     }
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeFirestore) {
-        unsubscribeFirestore();
-      }
+      if (unsubscribeFirestore) unsubscribeFirestore();
     };
   }, [firebaseUser]);
 
-
-  const validateEducationalEmail = (email: string): boolean => {
-    return email.toLowerCase().endsWith('.edu');
-  };
-
-  const signUp = async (email: string, password: string, displayName: string, major: Major | '') => {
-    if (!validateEducationalEmail(email)) {
+  const signUp = async (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => {
+    if (!email.toLowerCase().endsWith('.edu')) {
       throw new Error('Please use your educational (.edu) email address');
     }
 
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(result.user);
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    const newChannel = await findChannelByMajor(major);
+    if (!newChannel) throw new Error(`Could not find a channel for the major: ${major}`);
 
-      const userProfile: Omit<User, 'uid'> = {
-        email,
-        displayName: displayName,
-        major: major || '',
-        role: 'student',
-        isVerified: false,
-        joinedChannels: [],
-        createdAt: new Date(),
-        lastActiveAt: new Date(),
-        profile: {},
-      };
+    const userProfile: User = {
+      uid: result.user.uid,
+      email,
+      displayName,
+      major,
+      role: 'student',
+      isVerified: false,
+      joinedChannels: [newChannel.id], // Immediately add to channel
+      createdAt: new Date(),
+      lastActiveAt: new Date(),
+      profile: {
+        university,
+        graduationYear: gradYear ? parseInt(gradYear, 10) : undefined,
+      },
+    };
 
-      await setDoc(doc(db, 'users', result.user.uid), userProfile);
-      toast.success('Account created! Please check your email to verify your account.');
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to create account');
-    }
+    // Use a transaction to create the user and update the channel member count atomically
+    await runTransaction(db, async (transaction) => {
+      const userDocRef = doc(db, 'users', result.user.uid);
+      const channelDocRef = doc(db, 'channels', newChannel.id);
+
+      transaction.set(userDocRef, userProfile);
+      transaction.update(channelDocRef, {
+        members: arrayUnion(result.user.uid),
+        memberCount: increment(1),
+      });
+    });
+
+    await sendEmailVerification(result.user);
+    toast.success('Account created! Please verify your email.');
   };
 
   const signIn = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     if (!userCredential.user.emailVerified) {
-        toast.error('Please verify your email before signing in.');
-        await signOut(auth);
-        throw new Error('Email not verified');
+      await signOut(auth);
+      throw new Error('Please verify your email before signing in.');
     }
     toast.success('Welcome back!');
   };
 
   const handleSignOut = async () => {
     await signOut(auth);
-    setUser(null); // Explicitly clear local user state on sign out
+    setUser(null);
     setFirebaseUser(null);
     toast.success('Signed out successfully');
   };
@@ -133,15 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast.success('Password reset email sent');
   };
 
-  const value = {
-    user,
-    firebaseUser,
-    loading,
-    signIn,
-    signUp,
-    signOut: handleSignOut,
-    resetPassword,
-  };
+  const value = { user, firebaseUser, loading, signIn, signUp, signOut: handleSignOut, resetPassword };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
