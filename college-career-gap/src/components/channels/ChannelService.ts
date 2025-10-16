@@ -561,6 +561,40 @@ export async function postMessage(
 }
 
 /**
+ * Updates an existing message's content. (Admin only)
+ * This will also regenerate the link preview if the URL has changed.
+ */
+export async function updateMessage(messageId: string, newContent: string): Promise<void> {
+  const messageRef = doc(db, 'messages', messageId);
+
+  try {
+    const sanitizedContent = sanitizeMessageContent(newContent);
+    const url = extractUrl(sanitizedContent);
+    let linkPreview: LinkPreview | null = null;
+
+    if (url) {
+      toast.loading('Checking for link preview...');
+      linkPreview = await getLinkPreview(url);
+      toast.dismiss();
+    }
+
+    const updateData: { [key: string]: any } = {
+      content: sanitizedContent,
+      isEdited: true,
+      editedAt: serverTimestamp(),
+      type: url ? 'link' : 'text',
+      metadata: linkPreview ? { links: [linkPreview] } : {},
+    };
+
+    await updateDoc(messageRef, updateData);
+  } catch (error: any) {
+    console.error('Error updating message:', error);
+    toast.error(error.message || 'Failed to update message.');
+    throw error; // Re-throw to be caught in the component
+  }
+}
+
+/**
  * Toggles the 'isPinned' status of a message. (Admin only)
  */
 export async function togglePinMessage(messageId: string, currentStatus: boolean): Promise<void> {

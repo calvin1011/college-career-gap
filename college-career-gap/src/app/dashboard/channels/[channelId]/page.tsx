@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
 import { Channel, Message } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2 } from 'lucide-react';
+import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
@@ -15,6 +15,8 @@ import Link from "next/link";
 import { ReactionPanel } from '@/components/channels/ReactionPanel';
 import { MessageContentRenderer } from '@/components/channels/MessageContentRenderer';
 import { LinkPreviewCard } from '@/components/channels/LinkPreviewCard';
+import { updateMessage } from '@/components/channels/ChannelService';
+import { EditMessageModal } from '@/components/channels/EditMessageModal'
 import Image from "next/image";
 
 export default function ChannelPage() {
@@ -26,6 +28,7 @@ export default function ChannelPage() {
   const [moderationLoading, setModerationLoading] = useState<string | null>(null); // To track loading state for specific messages
   const { messages, loading: loadingMessages } = useMessages(channel?.id || '');
   const router = useRouter();
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
   useEffect(() => {
     const fetchChannel = async () => {
@@ -91,6 +94,10 @@ export default function ChannelPage() {
     );
   }
 
+  const handleUpdateMessage = async (messageId: string, newContent: string) => {
+    await updateMessage(messageId, newContent);
+  };
+
   const formatTimestamp = (timestamp: any): string => {
     // Check if it's a Firestore Timestamp object (which has a 'seconds' property)
     if (timestamp && typeof timestamp.seconds === 'number') {
@@ -152,9 +159,13 @@ export default function ChannelPage() {
                       <div>
                         <span className="font-medium text-gray-900">{message.authorId === 'system' ? 'Adams State Hub' : 'Professor'}</span>
                         <span className="text-xs text-gray-500 ml-2">{formatTimestamp(message.createdAt)}</span>
+                        {message.isEdited && <span className="text-xs text-gray-400 ml-2">(edited)</span>}
                       </div>
                       {isAdmin && (
                         <div className="flex items-center space-x-2">
+                          <Button variant="ghost" size="sm" onClick={() => setEditingMessage(message)}>
+                            <Edit className="w-4 h-4 text-gray-500" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => handleTogglePin(message)} disabled={moderationLoading === message.id}>
                             <Pin className={`w-4 h-4 ${message.isPinned ? 'text-blue-600' : 'text-gray-500'}`} />
                           </Button>
@@ -185,6 +196,13 @@ export default function ChannelPage() {
       {/* Message Composer for Admins */}
       {isAdmin && user && (
         <MessageComposer channelId={channel.id} userId={user.uid} isAdmin={isAdmin} onMessagePosted={() => {}} />
+      )}
+      {editingMessage && (
+        <EditMessageModal
+          message={editingMessage}
+          onClose={() => setEditingMessage(null)}
+          onSave={handleUpdateMessage}
+        />
       )}
     </div>
   );
