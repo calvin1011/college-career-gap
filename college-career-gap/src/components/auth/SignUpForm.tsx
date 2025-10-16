@@ -56,8 +56,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         formData.graduationYear
       );
       setShowSuccess(true);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Check Your Email</h2>
-            <p className="text-gray-600 mt-2">We've sent a verification link to <strong>{formData.email}</strong></p>
+            <p className="text-gray-600 mt-2">We&apos;ve sent a verification link to <strong>{formData.email}</strong></p>
           </div>
         </CardHeader>
         <CardContent>

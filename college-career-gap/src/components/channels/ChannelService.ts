@@ -4,8 +4,6 @@ import {
   doc,
   setDoc,
   getDoc,
-  query,
-  where,
   updateDoc,
   arrayUnion,
   arrayRemove,
@@ -14,7 +12,6 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
-  FieldValue,
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview } from '@/types';
@@ -124,7 +121,7 @@ async function createSeedMessages(channelId: string, channelName: string) {
   if (!seedMessages) return;
 
   const messagesRef = collection(db, 'messages');
-  
+
   for (let i = 0; i < seedMessages.length; i++) {
     const messageData = {
       ...seedMessages[i],
@@ -137,13 +134,13 @@ async function createSeedMessages(channelId: string, channelName: string) {
         tags: ['welcome', 'resources']
       }
     };
-    
+
     await addDoc(messagesRef, messageData);
-    
+
     // Add small delay to ensure proper ordering
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  
+
   // Update channel message count
   await updateDoc(doc(db, 'channels', channelId), {
     messageCount: increment(seedMessages.length)
@@ -159,7 +156,7 @@ export async function seedChannels() {
   for (const major of SUPPORTED_MAJORS) {
     const slug = major.toLowerCase().replace(/\s/g, '-');
     const channelDocRef = doc(channelsRef, slug);
-    
+
     try {
       const channelDoc = await getDoc(channelDocRef);
 
@@ -184,12 +181,12 @@ export async function seedChannels() {
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-        
+
         await setDoc(channelDocRef, newChannel);
-        
+
         // Create seed messages for the channel
         await createSeedMessages(slug, major);
-        
+
         console.log(`✅ Channel ${major} seeded with welcome messages`);
       }
     } catch (error) {
@@ -240,9 +237,9 @@ export async function leaveChannel(channelId: string, userId: string) {
     });
 
     toast.success(`You've left the ${channelId.replace('-', ' ')} channel.`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error leaving channel:', error);
-    toast.error(error.message || 'Failed to leave channel. Please try again.');
+    toast.error((error as Error).message || 'Failed to leave channel. Please try again.');
     throw error;
   }
 }
@@ -303,7 +300,7 @@ export async function updateUserProfileAndMajor(
     });
 
     // Prepare the final user document update
-    const userUpdateData: { [key: string]: any } = {
+    const userUpdateData: { [key: string]: unknown } = {
       displayName: profileData.displayName,
       major: newMajor,
       'profile.graduationYear': profileData.graduationYear ? parseInt(profileData.graduationYear, 10) : undefined,
@@ -535,7 +532,7 @@ export async function postMessage(
         reactions: {},
         isPinned: false,
         isEdited: false,
-        createdAt: serverTimestamp() as any,
+        createdAt: serverTimestamp(),
         metadata: linkPreview ? { links: [linkPreview] } : {}, // Use the fetched preview
       };
 
@@ -553,9 +550,9 @@ export async function postMessage(
       id: newMessageDoc.id,
       ...newMessageDoc.data(),
     } as Message;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error posting message:', error);
-    toast.error(error.message || 'Failed to post message.');
+    toast.error((error as Error).message || 'Failed to post message.');
     throw error;
   }
 }
@@ -578,7 +575,7 @@ export async function updateMessage(messageId: string, newContent: string): Prom
       toast.dismiss();
     }
 
-    const updateData: { [key: string]: any } = {
+    const updateData: { [key: string]: unknown } = {
       content: sanitizedContent,
       isEdited: true,
       editedAt: serverTimestamp(),
@@ -587,9 +584,9 @@ export async function updateMessage(messageId: string, newContent: string): Prom
     };
 
     await updateDoc(messageRef, updateData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating message:', error);
-    toast.error(error.message || 'Failed to update message.');
+    toast.error((error as Error).message || 'Failed to update message.');
     throw error; // Re-throw to be caught in the component
   }
 }
@@ -653,18 +650,18 @@ export async function joinChannel(channelId: string, userId: string) {
     await runTransaction(db, async (transaction) => {
       const channelDoc = await transaction.get(channelRef);
       const userDoc = await transaction.get(userRef);
-      
+
       if (!channelDoc.exists()) {
         throw new Error("Channel does not exist!");
       }
-      
+
       if (!userDoc.exists()) {
         throw new Error("User does not exist!");
       }
 
       const channelData = channelDoc.data() as Channel;
-      const userData = userDoc.data();
-      
+      // const userData = userDoc.data();
+
       // Check if user is already a member
       if (channelData.members?.includes(userId)) {
         throw new Error("You're already a member of this channel!");
@@ -685,15 +682,15 @@ export async function joinChannel(channelId: string, userId: string) {
     });
 
     toast.success(`Welcome to ${channelId.replace('-', ' ')} channel! 🎉`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error joining channel:', error);
-    
-    if (error.message.includes("already a member")) {
+
+    if ((error as Error).message.includes("already a member")) {
       toast.error("You're already a member of this channel!");
     } else {
       toast.error('Failed to join channel. Please try again.');
     }
-    
+
     throw error;
   }
 }

@@ -19,9 +19,7 @@ import {
 } from 'lucide-react';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 import app from '@/services/firebase/config';
-import toast from 'react-hot-toast';
 import { useRouter } from "next/navigation";
-import { cn } from '@/utils/cn';
 
 // Initialize analytics
 const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
@@ -109,7 +107,7 @@ export default function DashboardPage() {
           Welcome, {user?.displayName || 'Student'}!
         </h1>
         <p className="text-xl text-brand-slate-700 mb-8">
-          We couldn't find a channel for your major: <span className="font-semibold text-brand-blue">{user?.major || 'Not Set'}</span>.
+          We couldn&apos;t find a channel for your major: <span className="font-semibold text-brand-blue">{user?.major || 'Not Set'}</span>.
         </p>
         <Button onClick={() => router.push('/dashboard/profile')}>
           Update Profile
@@ -126,7 +124,7 @@ export default function DashboardPage() {
           Welcome, {user?.displayName || 'Student'}!
         </h1>
         <p className="text-lg text-brand-slate-700">
-          Your major is <span className="font-semibold text-brand-blue">{user?.major || 'Not Set'}</span>. Here is your major's resource channel.
+          Your major is <span className="font-semibold text-brand-blue">{user?.major || 'Not Set'}</span>. Here is your major&apos;s resource channel.
         </p>
       </div>
 

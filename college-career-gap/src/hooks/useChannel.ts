@@ -12,8 +12,8 @@ export function useChannel() {
       try {
         const fetchedChannels = await getChannels();
         setChannels(fetchedChannels);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError((err as Error).message);
       } finally {
         setLoadingChannels(false);
       }

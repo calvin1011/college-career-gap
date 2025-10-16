@@ -9,7 +9,7 @@ import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2 }
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import Link from "next/link";
 import { ReactionPanel } from '@/components/channels/ReactionPanel';
@@ -18,7 +18,7 @@ import { LinkPreviewCard } from '@/components/channels/LinkPreviewCard';
 import { updateMessage } from '@/components/channels/ChannelService';
 import { EditMessageModal } from '@/components/channels/EditMessageModal';
 import { InviteModal } from '@/components/channels/InviteModal';
-import Image from "next/image";
+import { FieldValue, Timestamp } from 'firebase/firestore';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -28,7 +28,6 @@ export default function ChannelPage() {
   const [loadingChannel, setLoadingChannel] = useState(true);
   const [moderationLoading, setModerationLoading] = useState<string | null>(null); // To track loading state for specific messages
   const { messages, loading: loadingMessages } = useMessages(channel?.id || '');
-  const router = useRouter();
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
@@ -100,16 +99,16 @@ export default function ChannelPage() {
     await updateMessage(messageId, newContent);
   };
 
-  const formatTimestamp = (timestamp: any): string => {
-    // Check if it's a Firestore Timestamp object (which has a 'seconds' property)
-    if (timestamp && typeof timestamp.seconds === 'number') {
-      return new Date(timestamp.seconds * 1000).toLocaleString();
+  const formatTimestamp = (timestamp: Date | Timestamp | FieldValue): string => {
+    // Check if it's a Firestore Timestamp object
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate().toLocaleString();
     }
     // Check if it's already a JavaScript Date object
     if (timestamp instanceof Date) {
       return timestamp.toLocaleString();
     }
-    // Provide a fallback for any other case
+    // Provide a fallback for FieldValue (like serverTimestamp) or other cases
     return 'Just now';
   };
 

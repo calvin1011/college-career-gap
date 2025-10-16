@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Message } from '@/types';
 import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';

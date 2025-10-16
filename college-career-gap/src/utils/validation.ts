@@ -17,7 +17,7 @@ export const sanitizeMessageContent = (content: string): string => {
   }
 
   // Remove script tags and javascript: protocols
-  let sanitized = content
+  const sanitized = content
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/javascript:/gi, '')
     .replace(/on\w+\s*=/gi, '');

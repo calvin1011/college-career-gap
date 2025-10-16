@@ -9,7 +9,7 @@ import { seedChannels } from '@/components/channels/ChannelService';
 import { auth } from '@/services/firebase/config';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { firebaseUser, loading, user } = useAuth();
+  const { firebaseUser, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {

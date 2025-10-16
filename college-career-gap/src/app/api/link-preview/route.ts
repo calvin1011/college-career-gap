@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       image,
       domain,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: `Failed to get link preview: ${error.message}` }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: `Failed to get link preview: ${(error as Error).message}` }, { status: 500 });
   }
 }

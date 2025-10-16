@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { X, Copy, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
+import Image from 'next/image';
 
 interface InviteModalProps {
   channel: Channel;
@@ -59,10 +60,12 @@ export function InviteModal({ channel, onClose }: InviteModalProps) {
 
         <div className="mt-8 text-center">
           {qrCodeDataUrl ? (
-            <img
+            <Image
               src={qrCodeDataUrl}
               alt={`QR code for ${channel.name}`}
-              className="w-48 h-48 mx-auto rounded-lg border-4 border-gray-100"
+              width={192}
+              height={192}
+              className="mx-auto rounded-lg border-4 border-gray-100"
             />
           ) : (
             <div className="w-48 h-48 mx-auto bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">

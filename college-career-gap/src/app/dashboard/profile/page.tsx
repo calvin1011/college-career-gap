@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/Card';
-import { Major, SUPPORTED_MAJORS } from '@/types';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
 import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
 import Image from 'next/image';
@@ -67,8 +67,8 @@ export default function ProfileSetupPage() {
       } else {
         router.push('/dashboard');
       }
-    } catch (error: any) {
-      toast.error(`Failed to update profile: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Failed to update profile: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }

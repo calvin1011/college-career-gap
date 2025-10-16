@@ -55,8 +55,8 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       setLoading(true);
       await signIn(email, password);
       router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -74,8 +74,8 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
     try {
       await resetPassword(email);
       setShowResetPassword(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send reset email');
+    } catch (error: unknown) {
+      toast.error((error as Error).message || 'Failed to send reset email');
     }
   };
 
@@ -167,7 +167,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
 
               {onToggleMode && (
                 <div>
-                  <span className="text-sm text-gray-600">Don't have an account? </span>
+                  <span className="text-sm text-gray-600">Don&apos;t have an account? </span>
                   <button
                     type="button"
                     onClick={onToggleMode}

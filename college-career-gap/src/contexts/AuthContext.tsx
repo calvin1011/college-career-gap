@@ -10,7 +10,7 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, runTransaction, arrayUnion, increment } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, arrayUnion, increment } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
