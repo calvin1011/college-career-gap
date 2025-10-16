@@ -1,6 +1,7 @@
+// src/app/dashboard/profile/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -9,10 +10,13 @@ import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/Card'
 import { Major, SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
 import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
+import Image from 'next/image';
+import { User as UserIcon } from 'lucide-react';
 
 export default function ProfileSetupPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -20,8 +24,9 @@ export default function ProfileSetupPage() {
     graduationYear: '',
     university: '',
   });
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isChangingMajor, setIsChangingMajor] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -31,46 +36,39 @@ export default function ProfileSetupPage() {
         graduationYear: user.profile?.graduationYear?.toString() || '',
         university: user.profile?.university || '',
       });
-      if (user.major && user.joinedChannels.length === 0) {
-        setIsChangingMajor(true);
-      }
     }
   }, [user]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast.error('Image is too large. Max size is 2MB.');
+        return;
+      }
+      setProfilePicFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast.error('You must be logged in to update your profile.');
-      return;
-    }
+    if (!user) return;
     if (!formData.major || !formData.displayName) {
       toast.error('Display Name and Major are required.');
       return;
     }
-
     setLoading(true);
-
     try {
-      const previousMajor = user.major;
-      const newMajor = formData.major;
-
-      // --- FIX IS HERE: Call the new function ---
-      const newChannel = await updateUserProfileAndMajor(user.uid, formData);
-
-      if (previousMajor && previousMajor !== newMajor) {
-        toast.success(`Successfully changed major to ${newMajor}!`);
-      } else {
-        toast.success('Profile updated successfully!');
-      }
-
+      const newChannel = await updateUserProfileAndMajor(user.uid, formData, profilePicFile);
+      toast.success('Profile updated successfully!');
       if (newChannel?.slug) {
         router.push(`/dashboard/channels/${newChannel.slug}`);
       } else {
         router.push('/dashboard');
       }
     } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to update profile: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -80,82 +78,60 @@ export default function ProfileSetupPage() {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  if (authLoading) {
-    return null;
-  }
+  if (authLoading) return null;
+
+  const currentAvatar = previewUrl || user?.profile?.avatar;
 
   return (
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
-        <div className="text-center">
-          {isChangingMajor ? (
-            <>
-              <h2 className="text-2xl font-bold text-gray-900">Change Your Major</h2>
-              <p className="text-gray-600">Select your new major to access relevant resources</p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-2xl font-bold text-gray-900">Complete Your Profile</h2>
-              <p className="text-gray-600">Tell us a bit more about yourself to get started.</p>
-            </>
-          )}
-        </div>
+        <h2 className="text-2xl font-bold text-center text-gray-900">Profile Settings</h2>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Input
-            label="Display Name"
-            value={formData.displayName}
-            onChange={handleChange('displayName')}
-            required
-          />
-
-          <Input
-            label="University"
-            value={formData.university}
-            onChange={handleChange('university')}
-            required
-          />
-
-          <div className="space-y-2">
-            <label htmlFor="major" className="block text-sm font-medium text-gray-700">Major</label>
-            <select
-              id="major"
-              value={formData.major}
-              onChange={handleChange('major')}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative w-24 h-24">
+              {currentAvatar ? (
+                <Image
+                  src={currentAvatar}
+                  alt="Profile Preview"
+                  layout="fill"
+                  className="rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
+                  <UserIcon className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
+            </div>
+            <input
+              type="file"
+              accept="image/png, image/jpeg"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
             >
-              <option value="">Select your major</option>
-              {SUPPORTED_MAJORS.map(major => (
-                <option key={major} value={major}>{major}</option>
-              ))}
-            </select>
-            {isChangingMajor && (
-              <p className="text-sm text-blue-600 mt-1">
-                You'll be added to your new major's channel automatically.
-              </p>
-            )}
+              Change Picture
+            </Button>
           </div>
-
-          <Input
-            type="number"
-            label="Graduation Year (Optional)"
-            value={formData.graduationYear}
-            onChange={handleChange('graduationYear')}
-            placeholder="e.g., 2025"
-          />
-
-          <Button type="submit" className="w-full" loading={loading}>
-            {isChangingMajor ? 'Save & Join New Channel' : 'Save and Continue'}
-          </Button>
+          <Input label="Display Name" value={formData.displayName} onChange={handleChange('displayName')} required />
+          <Input label="University" value={formData.university} onChange={handleChange('university')} required />
+          <div>
+            <label htmlFor="major" className="block text-sm font-medium text-gray-700 mb-2">Major</label>
+            <select id="major" value={formData.major} onChange={handleChange('major')} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <option value="">Select your major</option>
+              {SUPPORTED_MAJORS.map(major => (<option key={major} value={major}>{major}</option>))}
+            </select>
+          </div>
+          <Input type="number" label="Graduation Year (Optional)" value={formData.graduationYear} onChange={handleChange('graduationYear')} placeholder="e.g., 2025" />
+          <Button type="submit" className="w-full" loading={loading}>Save Changes</Button>
         </form>
       </CardContent>
-      {isChangingMajor && (
-        <CardFooter className="bg-gray-50 border-t border-gray-200 text-center text-sm text-gray-500 py-4">
-          Changing your major will remove you from your current channel and add you to your new major's channel.
-        </CardFooter>
-      )}
     </Card>
   );
 }

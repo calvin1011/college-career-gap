@@ -15,7 +15,7 @@ import {
   serverTimestamp,
   Transaction,
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; // This is the correct way
 import { Channel, Major, SUPPORTED_MAJORS, Message, User } from '@/types';
 import toast from 'react-hot-toast';
 import { db } from '@/services/firebase/config';
@@ -252,22 +252,34 @@ export async function leaveChannel(channelId: string, userId: string) {
  */
 export async function updateUserProfileAndMajor(
   userId: string,
-  profileData: { displayName: string; major: string; graduationYear: string; university: string; }
+  profileData: { displayName: string; major: string; graduationYear: string; university: string; },
+  profilePic: File | null // Add the new file parameter
 ) {
   const userRef = doc(db, 'users', userId);
   const newMajor = profileData.major as Major;
+  let avatarUrl: string | undefined = undefined;
 
+  // 1. Handle the file upload first, outside of the transaction.
+  if (profilePic) {
+    // We'll create a simple path: avatars/{userId}
+    // This will overwrite the previous avatar, which is fine for profile pictures.
+    const storageRef = ref(storage, `avatars/${userId}`);
+    toast.loading('Uploading picture...');
+    const snapshot = await uploadBytes(storageRef, profilePic);
+    avatarUrl = await getDownloadURL(snapshot.ref);
+    toast.dismiss(); // Dismiss loading toast
+  }
+
+  // 2. Run the Firestore database updates within a transaction.
   return runTransaction(db, async (transaction) => {
-    // 1. Get current user data
     const userDoc = await transaction.get(userRef);
     if (!userDoc.exists()) throw new Error("User not found!");
 
     const currentUserData = userDoc.data() as User;
     const oldMajor = currentUserData.major as Major;
-
     const majorHasChanged = oldMajor !== newMajor;
 
-    // 2. Handle leaving the old channel if the major has changed
+    // Handle leaving the old channel if the major changed
     if (majorHasChanged && oldMajor) {
       const oldChannel = await findChannelByMajor(oldMajor);
       if (oldChannel) {
@@ -279,7 +291,7 @@ export async function updateUserProfileAndMajor(
       }
     }
 
-    // 3. Find and join the new channel
+    // Find and join the new channel
     const newChannel = await findChannelByMajor(newMajor);
     if (!newChannel) throw new Error(`Channel for major "${newMajor}" not found.`);
 
@@ -289,20 +301,23 @@ export async function updateUserProfileAndMajor(
       memberCount: increment(1),
     });
 
-    // 4. Prepare and commit the final user document update
-    const userUpdateData = {
+    // Prepare the final user document update
+    const userUpdateData: { [key: string]: any } = {
       displayName: profileData.displayName,
       major: newMajor,
       'profile.graduationYear': profileData.graduationYear ? parseInt(profileData.graduationYear, 10) : undefined,
       'profile.university': profileData.university,
       lastActiveAt: serverTimestamp(),
-      // Enforce the "one channel" rule by setting the array directly
       joinedChannels: [newChannel.id],
     };
 
+    // Add the new avatar URL to the update object if it exists
+    if (avatarUrl) {
+      userUpdateData['profile.avatar'] = avatarUrl;
+    }
+
     transaction.update(userRef, userUpdateData);
 
-    // Return the new channel so the UI can redirect
     return newChannel;
   });
 }

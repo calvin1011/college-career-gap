@@ -6,6 +6,7 @@ import { LogOut, Home, School, CalendarDays, User, Users } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Sidebar() {
   const { signOut, user } = useAuth();
@@ -39,8 +40,17 @@ export default function Sidebar() {
       {/* User Profile Section */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-lg font-semibold">
-            {user?.displayName?.[0] || 'A'}
+          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-lg font-semibold relative">
+            {user?.profile?.avatar ? (
+              <Image
+                src={user.profile.avatar}
+                alt="Profile picture"
+                layout="fill"
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <span>{user?.displayName?.[0] || 'A'}</span>
+            )}
           </div>
           <div className="flex-1 overflow-hidden">
             <h3 className="text-sm font-medium truncate">{user?.displayName}</h3>
