@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
 import { Channel, Message } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit } from 'lucide-react';
+import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
@@ -16,7 +16,8 @@ import { ReactionPanel } from '@/components/channels/ReactionPanel';
 import { MessageContentRenderer } from '@/components/channels/MessageContentRenderer';
 import { LinkPreviewCard } from '@/components/channels/LinkPreviewCard';
 import { updateMessage } from '@/components/channels/ChannelService';
-import { EditMessageModal } from '@/components/channels/EditMessageModal'
+import { EditMessageModal } from '@/components/channels/EditMessageModal';
+import { InviteModal } from '@/components/channels/InviteModal';
 import Image from "next/image";
 
 export default function ChannelPage() {
@@ -29,6 +30,7 @@ export default function ChannelPage() {
   const { messages, loading: loadingMessages } = useMessages(channel?.id || '');
   const router = useRouter();
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     const fetchChannel = async () => {
@@ -132,6 +134,12 @@ export default function ChannelPage() {
               <User className="w-4 h-4 mr-1" /> Change Major
             </Button>
           </Link>
+          {isAdmin && (
+            <Button onClick={() => setShowInviteModal(true)} size="sm">
+              <Share2 className="w-4 h-4 mr-2" />
+              Invite Students
+            </Button>
+          )}
         </div>
       </div>
 
@@ -197,6 +205,14 @@ export default function ChannelPage() {
       {isAdmin && user && (
         <MessageComposer channelId={channel.id} userId={user.uid} isAdmin={isAdmin} onMessagePosted={() => {}} />
       )}
+
+      {isAdmin && showInviteModal && channel && (
+        <InviteModal
+          channel={channel}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
       {editingMessage && (
         <EditMessageModal
           message={editingMessage}
