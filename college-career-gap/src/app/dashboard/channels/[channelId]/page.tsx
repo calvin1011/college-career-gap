@@ -12,6 +12,7 @@ import { MessageComposer } from '@/components/channels/MessageComposer';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import Link from "next/link";
+import { ReactionPanel } from '@/components/channels/ReactionPanel';
 import Image from "next/image";
 
 export default function ChannelPage() {
@@ -162,7 +163,10 @@ export default function ChannelPage() {
                       )}
                     </div>
                     <p className="text-gray-800 leading-relaxed mt-1">{message.content}</p>
-                    {/* Reaction system will go here later */}
+                    {/* Reaction system */}
+                    {user && (
+                      <ReactionPanel message={message} user={user} />
+                    )}
                   </div>
                 </div>
               </div>

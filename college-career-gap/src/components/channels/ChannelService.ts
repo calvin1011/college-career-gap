@@ -14,6 +14,7 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
+  FieldValue,
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; // This is the correct way
 import { Channel, Major, SUPPORTED_MAJORS, Message, User } from '@/types';
@@ -392,6 +393,45 @@ export async function joinMajorChannel(userId: string, major: Major): Promise<bo
   } catch (error) {
     console.error("Error in joinMajorChannel:", error);
     return false;
+  }
+}
+
+/**
+ * Toggles a user's reaction on a message.
+ * Adds the reaction if the user hasn't reacted with that emoji yet,
+ * and removes it if they have.
+ */
+export async function toggleReaction(messageId: string, emoji: string, userId: string) {
+  const messageRef = doc(db, 'messages', messageId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const messageDoc = await transaction.get(messageRef);
+      if (!messageDoc.exists()) {
+        throw new Error("Message not found");
+      }
+
+      const messageData = messageDoc.data();
+      const reactions = messageData.reactions || {};
+      const usersForEmoji: string[] = reactions[emoji] || [];
+
+      // Check if the user has already reacted with this emoji
+      if (usersForEmoji.includes(userId)) {
+        // Atomically remove the user's ID from the array
+        transaction.update(messageRef, {
+          [`reactions.${emoji}`]: arrayRemove(userId)
+        });
+      } else {
+        // Atomically add the user's ID to the array
+        transaction.update(messageRef, {
+          [`reactions.${emoji}`]: arrayUnion(userId)
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error toggling reaction:", error);
+    toast.error("Failed to update reaction.");
+    throw error;
   }
 }
 
