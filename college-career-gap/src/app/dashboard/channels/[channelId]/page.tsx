@@ -44,7 +44,6 @@ export default function ChannelPage() {
       }
     };
     fetchChannel();
-  // use the channelId variable in the dependency array
   }, [channelId, user]);
 
   const handleLeaveChannel = async () => {
@@ -104,8 +103,7 @@ export default function ChannelPage() {
   }
 
   const handleMessagePosted = (newMessage: Message) => {
-    // The useMessages hook will automatically update with real-time data
-    // This is just for optimistic updates if needed
+
   };
 
   return (

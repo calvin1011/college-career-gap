@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/Card';
 import { Major, SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
-// --- FIX IS HERE: Import the new function ---
 import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
 
 export default function ProfileSetupPage() {
