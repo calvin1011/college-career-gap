@@ -2,19 +2,21 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, Home, Compass } from 'lucide-react';
+import { LogOut, Home, School, CalendarDays, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
+import Link from 'next/link';
 
 export default function Sidebar() {
   const { signOut, user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
+  const majorSlug = user?.major ? user.major.toLowerCase().replace(/\s/g, '-') : '';
+
   const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    /*{ name: 'Explore Channels', href: '/dashboard/explore', icon: Compass },*/
-    // Add more navigation items here as your app grows
+    { name: 'My Channel', href: `/dashboard/channels/${majorSlug}`, icon: Home },
+    { name: 'Profile Settings', href: '/dashboard/profile', icon: User },
   ];
 
   const handleSignOut = async () => {
@@ -28,37 +30,78 @@ export default function Sidebar() {
 
   return (
     <div className="flex flex-col w-64 bg-gray-900 text-white min-h-screen">
+      {/* Logo */}
       <div className="flex items-center justify-center h-20 border-b border-gray-800">
         <span className="text-xl font-bold">Resource Hub</span>
       </div>
-      <nav className="flex-1 px-4 py-8 space-y-2">
+
+      {/* User Profile Section */}
+      <div className="p-4 border-b border-gray-800">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-lg font-semibold">
+            {user?.displayName?.[0] || 'A'}
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <h3 className="text-sm font-medium truncate">{user?.displayName}</h3>
+            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+          </div>
+        </div>
+
+        {/* User Details */}
+        <div className="bg-gray-800 rounded-lg p-4 space-y-2.5">
+          <div className="flex items-center text-sm">
+            <School className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+            <span className="text-gray-300 mr-1">Major:</span>
+            <span className="ml-auto font-medium text-white truncate">{user?.major || 'Not Set'}</span>
+          </div>
+
+          {user?.profile?.university && (
+            <div className="flex items-center text-sm">
+              <School className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+              <span className="text-gray-300 mr-1">School:</span>
+              <span className="ml-auto font-medium text-white truncate">{user?.profile?.university}</span>
+            </div>
+          )}
+
+          {user?.profile?.graduationYear && (
+            <div className="flex items-center text-sm">
+              <CalendarDays className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+              <span className="text-gray-300 mr-1">Grad Year:</span>
+              <span className="ml-auto font-medium text-white">{user?.profile?.graduationYear}</span>
+            </div>
+          )}
+
+          <Link
+            href="/dashboard/profile"
+            className="block w-full text-center text-xs text-blue-400 hover:text-blue-300 mt-4"
+          >
+            Edit Profile
+          </Link>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-1">
         {navItems.map((item) => (
-          <a
+          <Link
             key={item.name}
             href={item.href}
             className={cn(
-              'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md group hover:bg-gray-800 hover:text-white',
-              { 'bg-blue-600 text-white hover:bg-blue-700': pathname === item.href }
+              'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+              { 'bg-blue-600 text-white': pathname === item.href }
             )}
           >
             <item.icon className="w-5 h-5 mr-3" />
             <span>{item.name}</span>
-          </a>
+          </Link>
         ))}
       </nav>
+
+      {/* Sign Out Button */}
       <div className="px-4 py-6 border-t border-gray-800">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-sm font-semibold">
-            {user?.displayName?.[0] || 'A'}
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">{user?.displayName}</p>
-            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-          </div>
-        </div>
         <button
           onClick={handleSignOut}
-          className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-red-500 rounded-md group hover:bg-gray-800"
+          className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-500 rounded-md hover:bg-gray-800 group"
         >
           <LogOut className="w-5 h-5 mr-2" />
           <span>Sign Out</span>
