@@ -78,6 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const newChannel = await findChannelByMajor(major);
     if (!newChannel) throw new Error(`Could not find a channel for the major: ${major}`);
 
+    const graduationYear = gradYear.trim() ? parseInt(gradYear.trim(), 10) : undefined;
+
+    // Check if the parsed year is a valid number
+    if (graduationYear !== undefined && isNaN(graduationYear)) {
+      throw new Error('Invalid graduation year provided.');
+    }
+
     const userProfile: User = {
       uid: result.user.uid,
       email,
@@ -90,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       lastActiveAt: new Date(),
       profile: {
         university,
-        graduationYear: gradYear ? parseInt(gradYear, 10) : undefined,
+        graduationYear: graduationYear,
       },
     };
 

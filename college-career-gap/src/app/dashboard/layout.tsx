@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import { seedChannels } from '@/components/channels/ChannelService';
@@ -11,6 +11,7 @@ import { auth } from '@/services/firebase/config';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { firebaseUser, loading } = useAuth();
   const router = useRouter();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Redirect unauthenticated users to the home page
@@ -56,9 +57,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Render the dashboard content
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+      {/* Pass state to the Sidebar */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 flex flex-col">
-        <Header />
+        {/* Pass state setter to the Header */}
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           {children}
         </main>
