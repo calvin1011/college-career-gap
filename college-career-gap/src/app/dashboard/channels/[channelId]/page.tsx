@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import Link from "next/link";
 import { ReactionPanel } from '@/components/channels/ReactionPanel';
 import { MessageContentRenderer } from '@/components/channels/MessageContentRenderer';
+import { LinkPreviewCard } from '@/components/channels/LinkPreviewCard';
 import Image from "next/image";
 
 export default function ChannelPage() {
@@ -164,6 +165,11 @@ export default function ChannelPage() {
                       )}
                     </div>
                     <MessageContentRenderer content={message.content} />
+
+                    {/* link preview */}
+                    {message.metadata?.links?.[0] && (
+                      <LinkPreviewCard preview={message.metadata.links[0]} />
+                    )}
                     {/* Reaction system */}
                     {user && (
                       <ReactionPanel message={message} user={user} />

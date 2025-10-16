@@ -16,8 +16,8 @@ import {
   Transaction,
   FieldValue,
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; // This is the correct way
-import { Channel, Major, SUPPORTED_MAJORS, Message, User } from '@/types';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview } from '@/types';
 import toast from 'react-hot-toast';
 import { db } from '@/services/firebase/config';
 import { sanitizeMessageContent } from '@/utils/validation';
@@ -397,6 +397,32 @@ export async function joinMajorChannel(userId: string, major: Major): Promise<bo
 }
 
 /**
+ * Extracts the first URL from a string.
+ */
+const extractUrl = (text: string): string | null => {
+  const urlRegex = /(https?:\/\/[^\s]+)/;
+  const match = text.match(urlRegex);
+  return match ? match[0] : null;
+};
+
+/**
+ * Fetches link preview metadata from our API route.
+ */
+const getLinkPreview = async (url: string): Promise<LinkPreview | null> => {
+  try {
+    const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return { ...data, url };
+  } catch (error) {
+    console.error("Failed to fetch link preview:", error);
+    return null;
+  }
+};
+
+
+
+/**
  * Toggles a user's reaction on a message.
  * Adds the reaction if the user hasn't reacted with that emoji yet,
  * and removes it if they have.
@@ -481,31 +507,39 @@ export async function postMessage(
   const messagesRef = collection(db, 'messages');
 
   try {
-    // sanitize the message content before posting
     const sanitizedContent = sanitizeMessageContent(content);
+    const url = extractUrl(sanitizedContent);
+    let linkPreview: LinkPreview | null = null;
+
+    // Check for a URL and fetch its preview
+    if (url) {
+      toast.loading('Generating link preview...');
+      linkPreview = await getLinkPreview(url);
+      toast.dismiss();
+    }
 
     const newMessageRef = doc(messagesRef);
 
     await runTransaction(db, async (transaction: Transaction) => {
-      // get the current channel data
       const channelDoc = await transaction.get(channelRef);
       if (!channelDoc.exists()) {
         throw new Error('Channel does not exist!');
       }
 
-      // create the new message object
+      // Create the new message object, now with correct metadata
       const newMessage: Omit<Message, 'id'> = {
         channelId,
         authorId,
         content: sanitizedContent,
-        type: 'text',
+        type: url ? 'link' : 'text', // Set type based on URL presence
         reactions: {},
         isPinned: false,
         isEdited: false,
-        createdAt: serverTimestamp() as any, // Let the server set the timestamp
+        createdAt: serverTimestamp() as any,
+        metadata: linkPreview ? { links: [linkPreview] } : {}, // Use the fetched preview
       };
 
-      // automically create the message and update the channel
+      // Atomically create the message and update the channel
       transaction.set(newMessageRef, newMessage);
       transaction.update(channelRef, {
         messageCount: increment(1),
@@ -513,10 +547,11 @@ export async function postMessage(
       });
     });
 
-    // after the transaction is successful, return the newly created message
+    // Return the newly created message
+    const newMessageDoc = await getDoc(newMessageRef);
     return {
-      id: newMessageRef.id,
-      ...(await getDoc(newMessageRef)).data(),
+      id: newMessageDoc.id,
+      ...newMessageDoc.data(),
     } as Message;
   } catch (error: any) {
     console.error('Error posting message:', error);
