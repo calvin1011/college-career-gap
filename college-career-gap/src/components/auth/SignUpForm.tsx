@@ -96,7 +96,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Display Name" value={formData.displayName} onChange={handleChange('displayName')} required />
-          <Input type="email" label="Email Address" value={formData.email} onChange={handleChange('email')} placeholder="your.email@adams.edu" required />
+          <Input type="email" label="Email Address" value={formData.email} onChange={handleChange('email')} placeholder="your.email@university.edu" required />
           <Input label="University" value={formData.university} onChange={handleChange('university')} required />
 
           <div className="space-y-2">

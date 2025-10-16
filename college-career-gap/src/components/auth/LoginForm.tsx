@@ -93,7 +93,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
               label="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your.email@adams.edu"
+              placeholder="your.email@university.edu"
               required
             />
 
