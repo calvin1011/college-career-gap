@@ -71,51 +71,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => {
     if (!email.toLowerCase().endsWith('.edu')) {
-      throw new Error('Please use your educational (.edu) email address');
+        throw new Error('Please use your educational (.edu) email address');
     }
 
-    const result = await createUserWithEmailAndPassword(auth, email, password);
+    const gradYearValue = gradYear.trim();
+    let graduationYear: number | undefined;
+
+    if (gradYearValue) {
+        const parsedYear = parseInt(gradYearValue, 10);
+        if (isNaN(parsedYear)) {
+            throw new Error('Invalid graduation year provided.');
+        }
+        graduationYear = parsedYear;
+    }
+
     const newChannel = await findChannelByMajor(major);
-    if (!newChannel) throw new Error(`Could not find a channel for the major: ${major}`);
-
-    const graduationYear = gradYear.trim() ? parseInt(gradYear.trim(), 10) : undefined;
-
-    // Check if the parsed year is a valid number
-    if (graduationYear !== undefined && isNaN(graduationYear)) {
-      throw new Error('Invalid graduation year provided.');
+    if (!newChannel) {
+        throw new Error(`Could not find a channel for the major: ${major}`);
     }
 
-    const userProfile: User = {
-      uid: result.user.uid,
-      email,
-      displayName,
-      major,
-      role: 'student',
-      isVerified: false,
-      joinedChannels: [newChannel.id], // Immediately add to channel
-      createdAt: new Date(),
-      lastActiveAt: new Date(),
-      profile: {
-        university,
-        graduationYear: graduationYear,
-      },
-    };
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-    // Use a transaction to create the user and update the channel member count atomically
-    await runTransaction(db, async (transaction) => {
-      const userDocRef = doc(db, 'users', result.user.uid);
-      const channelDocRef = doc(db, 'channels', newChannel.id);
+    try {
+        const userProfile: User = {
+            uid: user.uid,
+            email,
+            displayName,
+            major,
+            role: 'student',
+            isVerified: false,
+            joinedChannels: [newChannel.id],
+            createdAt: new Date(),
+            lastActiveAt: new Date(),
+            profile: {
+                university,
+            },
+        };
 
-      transaction.set(userDocRef, userProfile);
-      transaction.update(channelDocRef, {
-        members: arrayUnion(result.user.uid),
-        memberCount: increment(1),
-      });
-    });
+        if (graduationYear !== undefined) {
+            userProfile.profile.graduationYear = graduationYear;
+        }
 
-    await sendEmailVerification(result.user);
-    toast.success('Account created! Please verify your email.');
-  };
+        await runTransaction(db, async (transaction) => {
+            const userDocRef = doc(db, 'users', user.uid);
+            const channelDocRef = doc(db, 'channels', newChannel.id);
+
+            transaction.set(userDocRef, userProfile);
+            transaction.update(channelDocRef, {
+                members: arrayUnion(user.uid),
+                memberCount: increment(1),
+            });
+        });
+
+        await sendEmailVerification(user);
+        toast.success('Account created! Please verify your email.');
+
+    } catch (error) {
+        await user.delete();
+        console.error("Sign up failed after user creation, rolling back.", error);
+        throw new Error('Failed to save user profile. Please try again.');
+    }
+};
 
   const signIn = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
