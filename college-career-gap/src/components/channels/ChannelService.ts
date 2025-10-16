@@ -486,6 +486,54 @@ export async function postMessage(
 }
 
 /**
+ * Toggles the 'isPinned' status of a message. (Admin only)
+ */
+export async function togglePinMessage(messageId: string, currentStatus: boolean): Promise<void> {
+  try {
+    const messageRef = doc(db, 'messages', messageId);
+    await updateDoc(messageRef, {
+      isPinned: !currentStatus,
+      updatedAt: serverTimestamp(),
+    });
+    toast.success(`Message ${!currentStatus ? 'pinned' : 'unpinned'} successfully!`);
+  } catch (error) {
+    console.error('Error toggling pin status:', error);
+    toast.error('Failed to update message pin status.');
+    throw error;
+  }
+}
+
+/**
+ * Deletes a message and decrements the channel's message count. (Admin only)
+ */
+export async function deleteMessage(channelId: string, messageId: string): Promise<void> {
+  const messageRef = doc(db, 'messages', messageId);
+  const channelRef = doc(db, 'channels', channelId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      // Ensure the message exists before trying to delete
+      const messageDoc = await transaction.get(messageRef);
+      if (!messageDoc.exists()) {
+        throw new Error("Message not found.");
+      }
+
+      // Atomically delete the message and decrement the channel's message count
+      transaction.delete(messageRef);
+      transaction.update(channelRef, {
+        messageCount: increment(-1),
+        updatedAt: serverTimestamp(),
+      });
+    });
+    toast.success('Message deleted successfully.');
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    toast.error('Failed to delete message.');
+    throw error;
+  }
+}
+
+/**
  * Joins a user to a specific channel.
  */
 export async function joinChannel(channelId: string, userId: string) {
