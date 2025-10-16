@@ -17,9 +17,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!loading && !firebaseUser) {
       router.push('/');
     }
-
-    // Seed channels on initial load if they don't exist
-    seedChannels();
   }, [loading, firebaseUser, router]);
 
   // Show a loading spinner while the auth state is being determined
