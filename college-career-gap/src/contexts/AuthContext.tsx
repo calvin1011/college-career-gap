@@ -114,25 +114,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         await runTransaction(db, async (transaction) => {
-            const userDocRef = doc(db, 'users', user.uid);
-            const channelDocRef = doc(db, 'channels', newChannel.id);
+          const userDocRef = doc(db, 'users', user.uid);
+          const channelDocRef = doc(db, 'channels', newChannel.id);
 
-            transaction.set(userDocRef, userProfile);
-            transaction.update(channelDocRef, {
-                members: arrayUnion(user.uid),
-                memberCount: increment(1),
-            });
+          // Check if channel exists
+          const channelDoc = await transaction.get(channelDocRef);
+          if (!channelDoc.exists()) {
+            throw new Error('Channel not found. Please contact support.');
+          }
+
+          transaction.set(userDocRef, userProfile);
+          transaction.update(channelDocRef, {
+            members: arrayUnion(user.uid),
+            memberCount: increment(1),
+          });
         });
 
         await sendEmailVerification(user);
         toast.success('Account created! Please verify your email and return to refresh.');
 
-    } catch (error) {
-        await user.delete();
-        console.error("Sign up failed after user creation, rolling back.", error);
-        throw new Error('Failed to save user profile. Please try again.');
+      } catch (error) {
+        console.error("Sign up failed:", error);
+
+        // Clean up Firebase auth user if Firestore transaction fails
+        if (auth.currentUser?.uid === user.uid) {
+          await user.delete();
+        }
+
+        // Provide more specific error messages
+        if (error instanceof Error) {
+          if (error.message.includes('permission')) {
+            throw new Error('Permission denied. Please try again or contact support.');
+          }
+          throw error;
+        }
+        throw new Error('Failed to create account. Please try again.');
+      }
     }
-};
 
   const signIn = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
