@@ -124,10 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
         });
 
-        await sendEmailVerification(user, {
-          url: `${window.location.origin}/dashboard`, // redirect here after verification
-          handleCodeInApp: false,
-        });
+        await sendEmailVerification(user);
+        toast.success('Account created! Please verify your email and return to refresh.');
 
     } catch (error) {
         await user.delete();
