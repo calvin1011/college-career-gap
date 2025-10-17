@@ -20,7 +20,7 @@ export function ReactionPanel({ message, user }: ReactionPanelProps) {
       // We are updating the database directly.
       // The real-time listener in `useMessages` will automatically refresh the UI.
       await toggleReaction(message.id, emoji, user.uid);
-    } catch (error) {
+    } catch {
       // The error is already handled and toasted in the service function.
     }
   };

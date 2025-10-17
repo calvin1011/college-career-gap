@@ -23,7 +23,7 @@ export function EditMessageModal({ message, onClose, onSave }: EditMessageModalP
       await onSave(message.id, content);
       toast.success('Message updated successfully!');
       onClose();
-    } catch (error) {
+    } catch {
       // Error is handled in the service
     } finally {
       setIsSaving(false);

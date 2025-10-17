@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import { seedChannels } from '@/components/channels/ChannelService';
 import { auth } from '@/services/firebase/config';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -41,8 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Please Verify Your Email</h2>
           <p className="text-gray-600 mt-2">
-            A verification link has been sent to <strong>{firebaseUser.email}</strong>.
-            Please check your inbox and click the link to continue.
+            A verification link has been sent to <strong>{firebaseUser.email}</strong>. Please check your inbox and click the link to continue.
           </p>
 
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-left">
