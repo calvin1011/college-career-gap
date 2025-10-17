@@ -30,12 +30,15 @@ export function MessageComposer({
     }
     setIsPosting(true);
     try {
+      console.log('Posting message to channel:', channelId);
       const newMessage = await postMessage(channelId, userId, content);
+      console.log('Message posted successfully:', newMessage);
       onMessagePosted(newMessage);
       setContent('');
       toast.success('Resource shared successfully!');
     } catch (error) {
       console.error('Error posting message:', error);
+      toast.error('Failed to post message');
     } finally {
       setIsPosting(false);
     }
