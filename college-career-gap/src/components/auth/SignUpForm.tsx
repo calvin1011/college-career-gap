@@ -68,22 +68,44 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   };
 
   if (showSuccess) {
-    // This success view remains the same
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              </svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Check Your Email</h2>
-            <p className="text-gray-600 mt-2">We&apos;ve sent a verification link to <strong>{formData.email}</strong></p>
+            <p className="text-gray-600 mt-2">
+              We've sent a verification link to <strong>{formData.email}</strong>
+            </p>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-md"><p className="text-sm text-blue-800">Please click the verification link to activate your account.</p></div>
-            {onToggleMode && (<Button variant="outline" className="w-full" onClick={onToggleMode}>Back to Sign In</Button>)}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md">
+              <p className="text-sm text-blue-800 font-medium mb-1">
+                📧 Click the verification link to activate your account
+              </p>
+              <p className="text-xs text-blue-700 mt-2">
+                <strong>Check your spam/junk folder</strong> if you don't see it within 2 minutes.
+              </p>
+            </div>
+
+            {/* Add a helpful tip box */}
+            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
+              <p className="text-xs text-yellow-800">
+                <strong> Tip:</strong> Add noreply@adams-resources-hub.firebaseapp.com to your contacts to prevent future emails from going to spam.
+              </p>
+            </div>
+
+            {onToggleMode && (
+              <Button variant="outline" className="w-full" onClick={onToggleMode}>
+                Back to Sign In
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
