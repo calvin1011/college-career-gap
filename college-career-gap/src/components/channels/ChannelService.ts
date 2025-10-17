@@ -187,7 +187,7 @@ export async function seedChannels() {
         // Create seed messages for the channel
         await createSeedMessages(slug, major);
 
-        console.log(`✅ Channel ${major} seeded with welcome messages`);
+        console.log(` Channel ${major} seeded with welcome messages`);
       }
     } catch (error) {
       console.error(`Error seeding channel ${major}:`, error);
@@ -257,7 +257,7 @@ export async function updateUserProfileAndMajor(
   const newMajor = profileData.major as Major;
   let avatarUrl: string | undefined = undefined;
 
-  // 1. Handle the file upload first, outside of the transaction.
+  // Handle the file upload first, outside of the transaction.
   if (profilePic) {
     // We'll create a simple path: avatars/{userId}
     // This will overwrite the previous avatar, which is fine for profile pictures.
@@ -268,7 +268,7 @@ export async function updateUserProfileAndMajor(
     toast.dismiss(); // Dismiss loading toast
   }
 
-  // 2. Run the Firestore database updates within a transaction.
+  // Run the Firestore database updates within a transaction.
   return runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
     if (!userDoc.exists()) throw new Error("User not found!");
@@ -301,13 +301,17 @@ export async function updateUserProfileAndMajor(
 
     // Prepare the final user document update
     const userUpdateData: { [key: string]: unknown } = {
-      displayName: profileData.displayName,
-      major: newMajor,
-      'profile.graduationYear': profileData.graduationYear ? parseInt(profileData.graduationYear, 10) : undefined,
-      'profile.university': profileData.university,
-      lastActiveAt: serverTimestamp(),
-      joinedChannels: [newChannel.id],
+        displayName: profileData.displayName,
+        major: newMajor,
+        'profile.university': profileData.university,
+        lastActiveAt: serverTimestamp(),
+        joinedChannels: [newChannel.id],
     };
+
+    // Conditionally add graduationYear to avoid 'undefined'
+    if (profileData.graduationYear) {
+        userUpdateData['profile.graduationYear'] = parseInt(profileData.graduationYear, 10);
+    }
 
     // Add the new avatar URL to the update object if it exists
     if (avatarUrl) {
