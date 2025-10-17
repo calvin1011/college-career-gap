@@ -88,7 +88,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
                 📧 Click the verification link to activate your account
               </p>
               <p className="text-xs text-blue-700 mt-2">
-                <strong>Check your spam/junk folder</strong> if you don't see it within 2 minutes.
+                <strong>Check your spam/junk folder</strong> if you don&apos;t see it within 2 minutes.
               </p>
             </div>
 

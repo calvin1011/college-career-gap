@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-left">
             <p className="text-sm text-yellow-800 font-medium">
-              <strong>Don't see the email?</strong>
+              <strong>Don&apos;t see the email?</strong>
             </p>
             <ul className="text-xs text-yellow-700 mt-2 ml-4 list-disc space-y-1">
               <li>Check your <strong>spam/junk folder</strong></li>
