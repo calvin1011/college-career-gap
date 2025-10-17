@@ -49,7 +49,10 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Button
                   size="lg"
-                  onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => {
+                    setAuthMode('signup');
+                    document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                   data-testid="signup-button"
                 >
                   Get Started
@@ -57,7 +60,10 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => {
+                    setAuthMode('signin');
+                    document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                   data-testid="login-button"
                 >
                   Sign In
