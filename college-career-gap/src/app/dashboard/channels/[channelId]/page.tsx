@@ -37,7 +37,7 @@ export default function ChannelPage() {
       try {
         const foundChannel = await findChannelBySlug(channelId);
         setChannel(foundChannel);
-      } catch (error) {
+      } catch {
         toast.error('Failed to load channel.');
       } finally {
         setLoadingChannel(false);
