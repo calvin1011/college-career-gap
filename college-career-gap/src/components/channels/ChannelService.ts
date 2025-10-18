@@ -12,6 +12,8 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
+  deleteDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview } from '@/types';
@@ -112,6 +114,28 @@ const SEED_MESSAGES = {
     }
   ]
 };
+
+export async function deleteUserAccount(user: User): Promise<void> {
+  const batch = writeBatch(db);
+
+  // Remove user from each channel's member list
+  if (user.joinedChannels && user.joinedChannels.length > 0) {
+    for (const channelId of user.joinedChannels) {
+      const channelRef = doc(db, 'channels', channelId);
+      batch.update(channelRef, {
+        members: arrayRemove(user.uid),
+        memberCount: increment(-1),
+      });
+    }
+  }
+
+  // Delete the user's document
+  const userRef = doc(db, 'users', user.uid);
+  batch.delete(userRef);
+
+  // Commit all batched writes
+  await batch.commit();
+}
 
 /**
  * Creates seed messages for a channel

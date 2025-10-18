@@ -9,12 +9,13 @@ import {
   signOut,
   sendEmailVerification,
   sendPasswordResetEmail,
+  deleteUser,
 } from 'firebase/auth';
-import { doc, onSnapshot, runTransaction, arrayUnion, increment } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
-import { findChannelByMajor } from '@/components/channels/ChannelService';
+import { findChannelByMajor, deleteUserAccount } from '@/components/channels/ChannelService';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  handleDeleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userProfile.profile.graduationYear = graduationYear;
         }
 
-        await runTransaction(db, async (transaction) => {
+        await runTransaction(db, async (transaction: Transaction) => {
           const userDocRef = doc(db, 'users', user.uid);
           const channelDocRef = doc(db, 'channels', newChannel.id);
 
@@ -173,7 +175,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast.success('Password reset email sent');
   };
 
-  const value = { user, firebaseUser, loading, signIn, signUp, signOut: handleSignOut, resetPassword };
+  const handleDeleteAccount = async () => {
+    if (!firebaseUser || !user) {
+      throw new Error("You must be logged in to delete an account.");
+    }
+    try {
+      // Delete Firestore data (user document and channel memberships)
+      await deleteUserAccount(user);
+
+      // Delete the user from Firebase Authentication
+      await deleteUser(firebaseUser);
+
+      toast.success("Your account has been permanently deleted.");
+    } catch (error: unknown) {
+      console.error("Error deleting account:", error);
+      // Handle re-authentication requirement if necessary
+      if (error instanceof Error && error.message.includes('requires-recent-login')) {
+        toast.error("This is a sensitive action. Please sign out and sign back in before deleting your account.");
+      } else {
+        toast.error("Failed to delete account. Please try again.");
+      }
+      throw error;
+    }
+  };
+
+
+  const value = { user, firebaseUser, loading, signIn, signUp, signOut: handleSignOut, resetPassword, handleDeleteAccount };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
