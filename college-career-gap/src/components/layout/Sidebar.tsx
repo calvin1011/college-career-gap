@@ -21,12 +21,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
 
   const majorSlug = user?.major ? user.major.toLowerCase().replace(/\s/g, '-') : '';
-  const hasMajorChannel = user?.major && user.joinedChannels.includes(majorSlug);
+  const isMemberOfMajorChannel = user?.major && user.joinedChannels.includes(majorSlug);
 
-  const navItems = [
-    ...(hasMajorChannel ? [{ name: 'My Major Channel', href: `/dashboard/channels/${majorSlug}`, icon: Home }] : []),
-    { name: 'Profile Settings', href: '/dashboard/profile', icon: User },
-  ];
+  const dashboardHref = isMemberOfMajorChannel ? `/dashboard/channels/${majorSlug}` : '/dashboard';
 
   const handleSignOut = async () => {
     try {
@@ -104,7 +101,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <span className="ml-auto font-medium text-white">{user?.profile?.graduationYear}</span>
                 </div>
               )}
-              {!hasMajorChannel && user?.major && (
+              {!isMemberOfMajorChannel && user?.major && (
                 <div className="mt-3 p-2 bg-yellow-900/30 border border-yellow-800/50 rounded-md text-xs text-yellow-300">
                   <p className="flex items-center">
                     <Users className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -123,28 +120,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           <nav className="px-4 py-6 space-y-1">
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               className={cn(
                 'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                { 'bg-blue-600 text-white': pathname === '/dashboard' }
+                { 'bg-blue-600 text-white': pathname.startsWith('/dashboard/channels') || pathname === '/dashboard' }
               )}
             >
               <Home className="w-5 h-5 mr-3" />
               <span>Dashboard</span>
             </Link>
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                  { 'bg-blue-600 text-white': pathname === item.href }
-                )}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                <span>{item.name}</span>
-              </Link>
-            ))}
+            <Link
+              href="/dashboard/profile"
+              className={cn(
+                'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                { 'bg-blue-600 text-white': pathname === '/dashboard/profile' }
+              )}
+            >
+              <User className="w-5 h-5 mr-3" />
+              <span>Profile Settings</span>
+            </Link>
           </nav>
         </div>
 

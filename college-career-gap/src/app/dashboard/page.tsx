@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const { user, firebaseUser } = useAuth();
   const { channels, loadingChannels } = useChannel();
   const [joining, setJoining] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const [redirecting, setRedirecting] = useState(true);
   const router = useRouter();
 
   // Log analytics event
@@ -60,16 +60,15 @@ export default function DashboardPage() {
 
   // Auto-redirect to major channel
   useEffect(() => {
-    // Only run if we have user data and channels have loaded
     if (user?.major && !loadingChannels && channels.length > 0) {
       const userMajorChannel = channels.find(channel => channel.name === user.major);
-      if (userMajorChannel) {
-        const isUserMember = user.joinedChannels.includes(userMajorChannel.id);
-        // If user is already a member of their major channel, redirect them there
-        if (isUserMember) {
-          router.push(`/dashboard/channels/${userMajorChannel.slug}`);
-        }
+      if (userMajorChannel && user.joinedChannels.includes(userMajorChannel.id)) {
+        router.push(`/dashboard/channels/${userMajorChannel.slug}`);
+      } else {
+        setRedirecting(false);
       }
+    } else if (!loadingChannels) {
+      setRedirecting(false);
     }
   }, [user, channels, loadingChannels, router]);
 
@@ -87,7 +86,7 @@ export default function DashboardPage() {
     router.push(`/dashboard/channels/${channel.slug}`);
   };
 
-  if (loadingChannels) {
+  if (loadingChannels || redirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
