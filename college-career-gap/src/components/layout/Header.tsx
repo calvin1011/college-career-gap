@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Menu } from 'lucide-react'; // Import the Menu icon
+import { Menu } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -20,7 +20,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </button>
 
       <div className="flex-1">
-        <h1 className="text-2xl font-semibold text-gray-800 text-center md:text-left">Resource Hub</h1>
       </div>
     </header>
   );
