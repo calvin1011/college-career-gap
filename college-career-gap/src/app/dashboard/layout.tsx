@@ -6,11 +6,15 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import { auth } from '@/services/firebase/config';
+import { Button } from '@/components/ui/Button';
+import { MessageSquarePlus } from 'lucide-react';
+import { FeedbackModal } from '@/components/feedback/FeedbackModal';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { firebaseUser, loading } = useAuth();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   useEffect(() => {
     // Redirect unauthenticated users to the home page
@@ -68,15 +72,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Render the dashboard content
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Pass state to the Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Pass state setter to the Header */}
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           {children}
         </main>
       </div>
+
+      {/* Floating Feedback Button */}
+      <Button
+        onClick={() => setIsFeedbackModalOpen(true)}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        aria-label="Submit Feedback"
+      >
+        <MessageSquarePlus size={24} />
+      </Button>
+
+      {/* Feedback Modal */}
+      {isFeedbackModalOpen && (
+        <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} />
+      )}
     </div>
   );
 }
