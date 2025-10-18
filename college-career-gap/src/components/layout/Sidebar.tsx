@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ShieldCheck } from 'lucide-react';
 
 // Define the props interface
 interface SidebarProps {
@@ -139,6 +140,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <User className="w-5 h-5 mr-3" />
               <span>Profile Settings</span>
             </Link>
+
+            {user?.role === 'admin' && (
+              <Link
+                href="/dashboard/admin/feedback"
+                className={cn(
+                  'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                  { 'bg-blue-600 text-white': pathname === '/dashboard/admin/feedback' }
+                )}
+              >
+                <ShieldCheck className="w-5 h-5 mr-3" />
+                <span>Admin Feedback</span>
+              </Link>
+            )}
           </nav>
         </div>
 
