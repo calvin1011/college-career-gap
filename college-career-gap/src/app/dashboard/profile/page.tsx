@@ -5,15 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/Card';
 import { SUPPORTED_MAJORS } from '@/types';
 import toast from 'react-hot-toast';
 import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
 import Image from 'next/image';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, AlertTriangle } from 'lucide-react';
 
 export default function ProfileSetupPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, handleDeleteAccount } = useAuth();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,6 +26,7 @@ export default function ProfileSetupPage() {
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -76,6 +77,22 @@ export default function ProfileSetupPage() {
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
+
+  const onDelete = async () => {
+    // A simple confirmation before proceeding.
+    if (!window.confirm("Are you sure you want to permanently delete your account? This action cannot be undone.")) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await handleDeleteAccount();
+      router.push('/'); // Redirect to home page after deletion
+    } catch {
+      // Error toast is handled in AuthContext
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   if (authLoading) return null;
 
@@ -131,6 +148,23 @@ export default function ProfileSetupPage() {
           <Button type="submit" className="w-full" loading={loading}>Save Changes</Button>
         </form>
       </CardContent>
+      <CardFooter className="flex-col items-start bg-red-50 border-t-2 border-red-200">
+          <h3 className="text-lg font-semibold text-red-800 flex items-center">
+            <AlertTriangle className="w-5 h-5 mr-2" />
+            Danger Zone
+          </h3>
+          <p className="text-sm text-red-600 mt-1 mb-4">
+            Deleting your account is permanent and will remove all your data. This action cannot be undone.
+          </p>
+          <Button
+            variant="secondary"
+            className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
+            onClick={onDelete}
+            loading={isDeleting}
+          >
+            Delete My Account
+          </Button>
+      </CardFooter>
     </Card>
   );
 }
