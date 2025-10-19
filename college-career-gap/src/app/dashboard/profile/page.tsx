@@ -42,7 +42,7 @@ export default function ProfileSetupPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 2 * 1024 * 1024) {
         toast.error('Image is too large. Max size is 2MB.');
         return;
       }
@@ -79,14 +79,13 @@ export default function ProfileSetupPage() {
   };
 
   const onDelete = async () => {
-    // A simple confirmation before proceeding.
     if (!window.confirm("Are you sure you want to permanently delete your account? This action cannot be undone.")) {
       return;
     }
     setIsDeleting(true);
     try {
       await handleDeleteAccount();
-      router.push('/'); // Redirect to home page after deletion
+      router.push('/');
     } catch {
       // Error toast is handled in AuthContext
     } finally {
@@ -99,11 +98,11 @@ export default function ProfileSetupPage() {
   const currentAvatar = previewUrl || user?.profile?.avatar;
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
-      <CardHeader>
+    <Card className="w-full md:max-w-lg md:mx-auto md:shadow-lg border-0 md:border rounded-none md:rounded-lg min-h-screen md:min-h-0">
+      <CardHeader className="pt-8 md:pt-6">
         <h2 className="text-2xl font-bold text-center text-gray-900">Profile Settings</h2>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-6 md:px-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
             <div className="relative w-24 h-24">
@@ -149,21 +148,21 @@ export default function ProfileSetupPage() {
         </form>
       </CardContent>
       <CardFooter className="flex-col items-start bg-red-50 border-t-2 border-red-200">
-          <h3 className="text-lg font-semibold text-red-800 flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2" />
-            Danger Zone
-          </h3>
-          <p className="text-sm text-red-600 mt-1 mb-4">
-            Deleting your account is permanent and will remove all your data. This action cannot be undone.
-          </p>
-          <Button
-            variant="secondary"
-            className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
-            onClick={onDelete}
-            loading={isDeleting}
-          >
-            Delete My Account
-          </Button>
+        <h3 className="text-lg font-semibold text-red-800 flex items-center">
+          <AlertTriangle className="w-5 h-5 mr-2" />
+          Danger Zone
+        </h3>
+        <p className="text-sm text-red-600 mt-1 mb-4">
+          Deleting your account is permanent and will remove all your data. This action cannot be undone.
+        </p>
+        <Button
+          variant="secondary"
+          className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
+          onClick={onDelete}
+          loading={isDeleting}
+        >
+          Delete My Account
+        </Button>
       </CardFooter>
     </Card>
   );
