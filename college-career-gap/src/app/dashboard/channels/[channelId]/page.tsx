@@ -113,8 +113,8 @@ export default function ChannelPage() {
   };
 
   return (
-    <div className="-my-6 -mx-6 md:-my-8 md:-mx-8">
-      <div className="container mx-auto py-8 px-6 md:px-8 flex flex-col h-[calc(100vh-80px)]">
+    <div className="md:-my-8 md:-mx-8">
+      <div className="container mx-auto py-8 px-6 md:px-8 flex flex-col md:h-[calc(100vh-80px)]">
         {/* Channel Header */}
         <div className="flex-shrink-0 flex items-center justify-between mb-6 bg-white p-6 rounded-lg shadow-sm">
           <div>
