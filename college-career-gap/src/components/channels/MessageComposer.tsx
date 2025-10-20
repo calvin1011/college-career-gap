@@ -46,26 +46,26 @@ export function MessageComposer({
 
   if (!isAdmin) {
     return (
-      <Card className="mt-8">
+      <Card className="border-0 md:border rounded-none md:rounded-lg shadow-none md:shadow-lg">
         <CardContent className="p-4 text-center text-gray-500">
-          <p>Only professors can post resources in this channel.</p>
+          <p className="text-sm md:text-base">Only professors can post resources in this channel.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="mt-8 p-4 bg-white rounded-lg shadow-lg">
-      <form onSubmit={handleSubmit} className="flex space-x-4">
+    <div className="bg-white border-t md:border md:rounded-lg md:shadow-lg p-4">
+      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row md:space-x-4 space-y-3 md:space-y-0">
         <textarea
-          className="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
           placeholder="Share a career resource or announcement..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={3}
           disabled={isPosting}
         />
-        <Button type="submit" loading={isPosting}>
+        <Button type="submit" loading={isPosting} className="w-full md:w-auto md:self-start">
           Post
         </Button>
       </form>
