@@ -10,6 +10,7 @@ export interface User {
   joinedChannels: string[];
   createdAt: Date | Timestamp | FieldValue;
   lastActiveAt: Date | Timestamp | FieldValue;
+  notificationToken?: string;
   profile: {
     avatar?: string;
     bio?: string;

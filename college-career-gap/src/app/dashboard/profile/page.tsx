@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
 import Image from 'next/image';
 import { User as UserIcon, AlertTriangle } from 'lucide-react';
+import { requestNotificationPermission } from '@/services/firebase/notifications';
 
 export default function ProfileSetupPage() {
   const { user, loading: authLoading, handleDeleteAccount } = useAuth();
@@ -76,6 +77,18 @@ export default function ProfileSetupPage() {
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const handleEnableNotifications = async () => {
+    if (user) {
+      try {
+        await requestNotificationPermission(user.uid);
+        toast.success('Notifications enabled successfully!');
+      } catch (error) {
+        toast.error('Failed to enable notifications. Please try again.');
+        console.error('Notification error:', error);
+      }
+    }
   };
 
   const onDelete = async () => {
@@ -146,6 +159,17 @@ export default function ProfileSetupPage() {
           <Input type="number" label="Graduation Year (Optional)" value={formData.graduationYear} onChange={handleChange('graduationYear')} placeholder="e.g., 2025" />
           <Button type="submit" className="w-full" loading={loading}>Save Changes</Button>
         </form>
+
+        {/* Notification Settings Section */}
+        <div className="mt-8 pt-6 border-t">
+          <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
+          <p className="text-sm text-gray-500 mt-1 mb-4">
+            Enable push notifications to receive real-time updates when new resources are posted.
+          </p>
+          <Button variant="outline" onClick={handleEnableNotifications}>
+            Enable Notifications
+          </Button>
+        </div>
       </CardContent>
       <CardFooter className="flex-col items-start bg-red-50 border-t-2 border-red-200">
         <h3 className="text-lg font-semibold text-red-800 flex items-center">
