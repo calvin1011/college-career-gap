@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
 import { Channel, Message } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2 } from 'lucide-react';
+import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { MessageComposer } from '@/components/channels/MessageComposer';
@@ -18,7 +18,9 @@ import { LinkPreviewCard } from '@/components/channels/LinkPreviewCard';
 import { updateMessage } from '@/components/channels/ChannelService';
 import { EditMessageModal } from '@/components/channels/EditMessageModal';
 import { InviteModal } from '@/components/channels/InviteModal';
-import { FieldValue, Timestamp } from 'firebase/firestore';
+import { FieldValue, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/services/firebase/config';
+import { requestNotificationPermission } from '@/services/firebase/notifications';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -30,6 +32,7 @@ export default function ChannelPage() {
   const { messages, loading: loadingMessages } = useMessages(channel?.id || '');
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const fetchChannel = async () => {
@@ -45,6 +48,36 @@ export default function ChannelPage() {
     };
     fetchChannel();
   }, [channelId]);
+
+  useEffect(() => {
+    if (user) {
+      setNotificationsEnabled(!!user.notificationToken);
+    }
+  }, [user]);
+
+  const handleToggleNotifications = async () => {
+    if (!user) return;
+
+    try {
+      if (notificationsEnabled) {
+        // Disable notifications
+        const userDocRef = doc(db, "users", user.uid);
+        await updateDoc(userDocRef, {
+          notificationToken: null,
+        });
+        setNotificationsEnabled(false);
+        toast.success('Notifications disabled');
+      } else {
+        // Enable notifications
+        await requestNotificationPermission(user.uid);
+        setNotificationsEnabled(true);
+        toast.success('Notifications enabled');
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      toast.error('Failed to update notifications');
+    }
+  };
 
   const handleTogglePin = async (message: Message) => {
     setModerationLoading(message.id);
@@ -126,9 +159,28 @@ export default function ChannelPage() {
             <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-lg md:text-2xl font-bold text-blue-600">{channel.majorCode}</span>
             </div>
+
+            {/* Notification Toggle */}
+            <button
+              onClick={handleToggleNotifications}
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors
+                ${notificationsEnabled 
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}
+              `}
+              title={notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
+            >
+              {notificationsEnabled ? (
+                <><Bell className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Notifications</span></>
+              ) : (
+                <><BellOff className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Notifications</span></>
+              )}
+            </button>
+
             <Link href="/dashboard/profile">
               <Button variant="outline" size="sm" className="text-xs md:text-sm whitespace-nowrap">
-                <User className="w-3 h-3 md:w-4 md:h-4 mr-1" /> Change
+                <User className="w-3 h-3 md:w-4 md:h-4 mr-1" /> Change Major
               </Button>
             </Link>
             {isAdmin && (
