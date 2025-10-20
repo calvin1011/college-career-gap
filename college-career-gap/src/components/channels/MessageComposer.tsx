@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Message } from '@/types';
+import { Message, MessageTag } from '@/types';
 import toast from 'react-hot-toast';
 import { postMessage } from './ChannelService';
+import { TagSelector } from './TagSelector';
 
 interface MessageComposerProps {
   channelId: string;
@@ -21,7 +22,16 @@ export function MessageComposer({
   onMessagePosted,
 }: MessageComposerProps) {
   const [content, setContent] = useState('');
+  const [selectedTags, setSelectedTags] = useState<MessageTag[]>([]);
   const [isPosting, setIsPosting] = useState(false);
+
+  const handleTagToggle = (tag: MessageTag) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +41,11 @@ export function MessageComposer({
     setIsPosting(true);
     try {
       console.log('Posting message to channel:', channelId);
-      const newMessage = await postMessage(channelId, userId, content);
+      const newMessage = await postMessage(channelId, userId, content, selectedTags);
       console.log('Message posted successfully:', newMessage);
       onMessagePosted(newMessage);
       setContent('');
+      setSelectedTags([]);
       toast.success('Resource shared successfully!');
     } catch (error) {
       console.error('Error posting message:', error);
@@ -56,16 +67,22 @@ export function MessageComposer({
 
   return (
     <div className="bg-white border-t md:border md:rounded-lg md:shadow-lg p-4">
-      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row md:space-x-4 space-y-3 md:space-y-0">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <textarea
-          className="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+          className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
           placeholder="Share a career resource or announcement..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={3}
           disabled={isPosting}
         />
-        <Button type="submit" loading={isPosting} className="w-full md:w-auto md:self-start">
+
+        <TagSelector
+          selectedTags={selectedTags}
+          onTagToggle={handleTagToggle}
+        />
+
+        <Button type="submit" loading={isPosting} className="w-full md:w-auto">
           Post
         </Button>
       </form>
