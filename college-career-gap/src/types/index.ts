@@ -69,6 +69,42 @@ export interface LinkPreview {
   domain: string;
 }
 
+export const MESSAGE_TAGS = [
+  'podcast',
+  'advice-tip',
+  'internship',
+  'full-time'
+] as const;
+
+export type MessageTag = typeof MESSAGE_TAGS[number];
+
+export const TAG_CONFIG: Record<MessageTag, { label: string; color: string; bgColor: string; borderColor: string }> = {
+  'podcast': {
+    label: '🎙️ Podcast',
+    color: 'text-pink-700',
+    bgColor: 'bg-pink-100',
+    borderColor: 'border-pink-400'
+  },
+  'advice-tip': {
+    label: '💡 Advice/Tips',
+    color: 'text-yellow-700',
+    bgColor: 'bg-yellow-50',
+    borderColor: 'border-yellow-300'
+  },
+  'internship': {
+    label: '🎓 Internship',
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-300'
+  },
+  'full-time': {
+    label: '💼 Full Time',
+    color: 'text-green-700',
+    bgColor: 'bg-green-100',
+    borderColor: 'border-green-400'
+  }
+};
+
 export interface MediaAttachment {
   url: string;
   type: 'image' | 'video' | 'document';

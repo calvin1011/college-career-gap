@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
-import { Channel, Message } from '@/types';
+import { Channel, Message, MessageTag } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ import { InviteModal } from '@/components/channels/InviteModal';
 import { FieldValue, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import { requestNotificationPermission } from '@/services/firebase/notifications';
+import { TagBadge } from '@/components/channels/TagBadge';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -128,8 +129,12 @@ export default function ChannelPage() {
     );
   }
 
-  const handleUpdateMessage = async (messageId: string, newContent: string) => {
-    await updateMessage(messageId, newContent);
+  const handleUpdateMessage = async (
+    messageId: string,
+    newContent: string,
+    tags: MessageTag[]
+  ) => {
+    await updateMessage(messageId, newContent, tags);
   };
 
   const formatTimestamp = (timestamp: Date | Timestamp | FieldValue): string => {
@@ -209,32 +214,71 @@ export default function ChannelPage() {
           ) : (
             messages.map((message) => (
               <div key={message.id} className={`p-3 md:p-4 rounded-lg shadow-sm border-l-4 transition-colors ${message.isPinned ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 border-gray-200'}`}>
-                {message.isPinned && (<div className="flex items-center mb-2 text-blue-600 text-xs md:text-sm font-medium"><Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1" /> Pinned Resource</div>)}
+                {message.isPinned && (
+                  <div className="flex items-center mb-2 text-blue-600 text-xs md:text-sm font-medium">
+                    <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1" /> Pinned Resource
+                  </div>
+                )}
                 <div className="flex items-start space-x-2 md:space-x-3">
                   <div className="w-7 h-7 md:w-8 md:h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs md:text-sm font-semibold text-blue-600">{message.authorId === 'system' ? '🏫' : 'P'}</span>
+                    <span className="text-xs md:text-sm font-semibold text-blue-600">
+                      {message.authorId === 'system' ? '🏫' : 'P'}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm md:text-base font-medium text-gray-900">{message.authorId === 'system' ? 'Adams State Hub' : 'Professor'}</span>
-                        <span className="text-xs text-gray-500 ml-2">{formatTimestamp(message.createdAt)}</span>
-                        {message.isEdited && <span className="text-xs text-gray-400 ml-2">(edited)</span>}
+                        <span className="text-sm md:text-base font-medium text-gray-900">
+                          {message.authorId === 'system' ? 'Adams State Hub' : 'Professor'}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          {formatTimestamp(message.createdAt)}
+                        </span>
+                        {message.isEdited && (
+                          <span className="text-xs text-gray-400 ml-2">(edited)</span>
+                        )}
                       </div>
                       {isAdmin && (
                         <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingMessage(message)} className="p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingMessage(message)}
+                            className="p-1"
+                          >
                             <Edit className="w-4 h-4 text-gray-500" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleTogglePin(message)} disabled={moderationLoading === message.id} className="p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTogglePin(message)}
+                            disabled={moderationLoading === message.id}
+                            className="p-1"
+                          >
                             <Pin className={`w-4 h-4 ${message.isPinned ? 'text-blue-600' : 'text-gray-500'}`} />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteMessage(message)} disabled={moderationLoading === message.id} className="p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteMessage(message)}
+                            disabled={moderationLoading === message.id}
+                            className="p-1"
+                          >
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
                       )}
                     </div>
+
+                    {/* Display Tags */}
+                    {message.metadata?.tags && message.metadata.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {message.metadata.tags.map((tag) => (
+                          <TagBadge key={tag} tag={tag as MessageTag} />
+                        ))}
+                      </div>
+                    )}
+
                     <MessageContentRenderer content={message.content} />
 
                     {message.metadata?.links?.[0] && (

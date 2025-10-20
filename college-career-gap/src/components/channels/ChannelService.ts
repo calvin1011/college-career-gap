@@ -16,7 +16,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview } from '@/types';
+import {Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview, MessageTag} from '@/types';
 import toast from 'react-hot-toast';
 import { db } from '@/services/firebase/config';
 import { sanitizeMessageContent } from '@/utils/validation';
@@ -526,7 +526,8 @@ export async function findChannelBySlug(slug: string): Promise<Channel | null> {
 export async function postMessage(
   channelId: string,
   authorId: string,
-  content: string
+  content: string,
+  tags: MessageTag[] = []
 ): Promise<Message> {
   const channelRef = doc(db, 'channels', channelId);
   const messagesRef = collection(db, 'messages');
@@ -551,20 +552,22 @@ export async function postMessage(
         throw new Error('Channel does not exist!');
       }
 
-      // Create the new message object, now with correct metadata
+      // Create the new message object with tags
       const newMessage: Omit<Message, 'id'> = {
         channelId,
         authorId,
         content: sanitizedContent,
-        type: url ? 'link' : 'text', // Set type based on URL presence
+        type: url ? 'link' : 'text',
         reactions: {},
         isPinned: false,
         isEdited: false,
         createdAt: serverTimestamp(),
-        metadata: linkPreview ? { links: [linkPreview] } : {}, // Use the fetched preview
+        metadata: {
+          ...(linkPreview ? { links: [linkPreview] } : {}),
+          ...(tags.length > 0 ? { tags } : {})
+        },
       };
 
-      // Atomically create the message and update the channel
       transaction.set(newMessageRef, newMessage);
       transaction.update(channelRef, {
         messageCount: increment(1),
@@ -572,7 +575,6 @@ export async function postMessage(
       });
     });
 
-    // Return the newly created message
     const newMessageDoc = await getDoc(newMessageRef);
     return {
       id: newMessageDoc.id,
@@ -589,7 +591,12 @@ export async function postMessage(
  * Updates an existing message's content. (Admin only)
  * This will also regenerate the link preview if the URL has changed.
  */
-export async function updateMessage(messageId: string, newContent: string): Promise<void> {
+
+export async function updateMessage(
+  messageId: string,
+  newContent: string,
+  tags: MessageTag[] = []
+): Promise<void> {
   const messageRef = doc(db, 'messages', messageId);
 
   try {
@@ -608,14 +615,17 @@ export async function updateMessage(messageId: string, newContent: string): Prom
       isEdited: true,
       editedAt: serverTimestamp(),
       type: url ? 'link' : 'text',
-      metadata: linkPreview ? { links: [linkPreview] } : {},
+      metadata: {
+        ...(linkPreview ? { links: [linkPreview] } : {}),
+        ...(tags.length > 0 ? { tags } : {})
+      },
     };
 
     await updateDoc(messageRef, updateData);
   } catch (error: unknown) {
     console.error('Error updating message:', error);
     toast.error((error as Error).message || 'Failed to update message.');
-    throw error; // Re-throw to be caught in the component
+    throw error;
   }
 }
 
