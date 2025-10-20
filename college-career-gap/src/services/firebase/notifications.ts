@@ -34,7 +34,7 @@ export const requestNotificationPermission = async (userId: string) => {
 
       // Get the device token
       const currentToken = await getToken(messaging, {
-        vapidKey: "BFB7RKWcnMymTSW9OhZeYtiCbQVZZ560-lEZArc7h68b3wu89Jg70M22cBmFqVSahqvnsjsuw2WrJNSfAq7_yoU",
+        vapidKey: "BLg73B7GDwucU-ERuh1QN8-1dinGhXkdPMOEUJy3Yjf-AN2t1OP0oYHcHD_OAd2ujy5-GLU2SPn1a_QvJ6hnnQI",
         serviceWorkerRegistration: registration
       });
 
