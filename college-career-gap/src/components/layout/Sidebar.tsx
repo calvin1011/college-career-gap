@@ -8,6 +8,7 @@ import { cn } from '@/utils/cn';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShieldCheck } from 'lucide-react';
+import { isSuperAdmin } from '@/config/superAdmin';
 
 // Define the props interface
 interface SidebarProps {
@@ -141,7 +142,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span>Profile Settings</span>
             </Link>
 
-            {user?.role === 'admin' && (
+            {user?.role === 'admin' && isSuperAdmin(user.email) && (
               <Link
                 href="/dashboard/admin/feedback"
                 className={cn(

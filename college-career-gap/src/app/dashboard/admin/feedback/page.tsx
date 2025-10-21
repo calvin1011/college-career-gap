@@ -6,6 +6,7 @@ import { db } from '@/services/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Lock } from 'lucide-react';
+import { isSuperAdmin } from '@/config/superAdmin';
 
 // Define a type for the feedback document
 interface FeedbackEntry {
@@ -28,8 +29,11 @@ export default function AdminFeedbackPage() {
   const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Check if user is super admin
+  const isSuperAdminUser = user?.role === 'admin' && isSuperAdmin(user.email);
+
   useEffect(() => {
-    if (user?.role !== 'admin') {
+    if (!isSuperAdminUser) {
       return;
     }
 
@@ -46,7 +50,7 @@ export default function AdminFeedbackPage() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [isSuperAdminUser]);
 
   if (authLoading || loading) {
     return (
@@ -56,13 +60,13 @@ export default function AdminFeedbackPage() {
     );
   }
 
-  if (user?.role !== 'admin') {
+  if (!isSuperAdminUser) {
     return (
       <Card className="max-w-md mx-auto text-center p-8">
         <CardContent>
           <Lock size={48} className="mx-auto text-red-500 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">This page is for administrators only.</p>
+          <p className="text-gray-600">This page is for super administrators only.</p>
         </CardContent>
       </Card>
     );
