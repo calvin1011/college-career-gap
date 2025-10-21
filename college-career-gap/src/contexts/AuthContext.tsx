@@ -16,6 +16,7 @@ import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
 import { findChannelByMajor, deleteUserAccount } from '@/components/channels/ChannelService';
+import { isSuperAdmin, bypassEduValidation } from '@/config/superAdmin';
 
 interface AuthContextType {
   user: User | null;
@@ -72,96 +73,100 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [firebaseUser]);
 
   const signUp = async (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => {
-    if (!email.toLowerCase().endsWith('.edu')) {
-        throw new Error('Please use your educational (.edu) email address');
+  // Check if super admin OR .edu email
+  if (!bypassEduValidation(email) && !email.toLowerCase().endsWith('.edu')) {
+    throw new Error('Please use your educational (.edu) email address');
+  }
+
+  const gradYearValue = gradYear.trim();
+  let graduationYear: number | undefined;
+
+  if (gradYearValue) {
+    const parsedYear = parseInt(gradYearValue, 10);
+    if (isNaN(parsedYear)) {
+      throw new Error('Invalid graduation year provided.');
+    }
+    graduationYear = parsedYear;
+  }
+
+  const newChannel = await findChannelByMajor(major);
+  if (!newChannel) {
+    throw new Error(`Could not find a channel for the major: ${major}`);
+  }
+
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+
+  try {
+    // Determine role based on super admin status
+    const userRole = isSuperAdmin(email) ? 'admin' : 'student';
+
+    const userProfile: User = {
+      uid: user.uid,
+      email,
+      displayName,
+      major,
+      role: userRole, // Set role based on super admin check
+      isVerified: false,
+      joinedChannels: [newChannel.id],
+      createdAt: new Date(),
+      lastActiveAt: new Date(),
+      profile: {
+        university,
+      },
+    };
+
+    if (graduationYear !== undefined) {
+      userProfile.profile.graduationYear = graduationYear;
     }
 
-    const gradYearValue = gradYear.trim();
-    let graduationYear: number | undefined;
+    await runTransaction(db, async (transaction: Transaction) => {
+      const userDocRef = doc(db, 'users', user.uid);
+      const channelDocRef = doc(db, 'channels', newChannel.id);
 
-    if (gradYearValue) {
-        const parsedYear = parseInt(gradYearValue, 10);
-        if (isNaN(parsedYear)) {
-            throw new Error('Invalid graduation year provided.');
-        }
-        graduationYear = parsedYear;
-    }
-
-    const newChannel = await findChannelByMajor(major);
-    if (!newChannel) {
-        throw new Error(`Could not find a channel for the major: ${major}`);
-    }
-
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    try {
-        const userProfile: User = {
-            uid: user.uid,
-            email,
-            displayName,
-            major,
-            role: 'student',
-            isVerified: false,
-            joinedChannels: [newChannel.id],
-            createdAt: new Date(),
-            lastActiveAt: new Date(),
-            profile: {
-                university,
-            },
-        };
-
-        if (graduationYear !== undefined) {
-            userProfile.profile.graduationYear = graduationYear;
-        }
-
-        await runTransaction(db, async (transaction: Transaction) => {
-          const userDocRef = doc(db, 'users', user.uid);
-          const channelDocRef = doc(db, 'channels', newChannel.id);
-
-          // Check if channel exists
-          const channelDoc = await transaction.get(channelDocRef);
-          if (!channelDoc.exists()) {
-            throw new Error('Channel not found. Please contact support.');
-          }
-
-          transaction.set(userDocRef, userProfile);
-          transaction.update(channelDocRef, {
-            members: arrayUnion(user.uid),
-            memberCount: increment(1),
-          });
-        });
-
-        await sendEmailVerification(user);
-        toast.success('Account created! Please verify your email and return to refresh.');
-
-      } catch (error) {
-        console.error("Sign up failed:", error);
-
-        // Clean up Firebase auth user if Firestore transaction fails
-        if (auth.currentUser?.uid === user.uid) {
-          await user.delete();
-        }
-
-        // Provide more specific error messages
-        if (error instanceof Error) {
-          if (error.message.includes('permission')) {
-            throw new Error('Permission denied. Please try again or contact support.');
-          }
-          throw error;
-        }
-        throw new Error('Failed to create account. Please try again.');
+      const channelDoc = await transaction.get(channelDocRef);
+      if (!channelDoc.exists()) {
+        throw new Error('Channel not found. Please contact support.');
       }
+
+      transaction.set(userDocRef, userProfile);
+      transaction.update(channelDocRef, {
+        members: arrayUnion(user.uid),
+        memberCount: increment(1),
+      });
+    });
+
+    await sendEmailVerification(user);
+    toast.success('Account created! Please verify your email and return to refresh.');
+
+  } catch (error) {
+    console.error("Sign up failed:", error);
+
+    if (auth.currentUser?.uid === user.uid) {
+      await user.delete();
     }
 
-  const signIn = async (email: string, password: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    if (!userCredential.user.emailVerified) {
-      await signOut(auth);
-      throw new Error('Please verify your email before signing in.');
+    if (error instanceof Error) {
+      if (error.message.includes('permission')) {
+        throw new Error('Permission denied. Please try again or contact support.');
+      }
+      throw error;
     }
-    toast.success('Welcome back!');
-  };
+    throw new Error('Failed to create account. Please try again.');
+  }
+}
+
+const signIn = async (email: string, password: string) => {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+  // Super admins can bypass email verification
+  if (!isSuperAdmin(email) && !userCredential.user.emailVerified) {
+    await signOut(auth);
+    throw new Error('Please verify your email before signing in.');
+  }
+
+  toast.success('Welcome back!');
+};
 
   const handleSignOut = async () => {
     await signOut(auth);
