@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import toast from 'react-hot-toast';
 import { Major, SUPPORTED_MAJORS } from '@/types';
+import { bypassEduValidation } from '@/config/superAdmin';
 
 interface SignUpFormProps {
   onToggleMode?: () => void;
@@ -28,7 +29,11 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   const { signUp } = useAuth();
 
   const validateForm = (): string | null => {
-    if (!formData.email.toLowerCase().endsWith('.edu')) return 'Please use an educational (.edu) email.';
+    // Check if super admin OR .edu email
+    if (!bypassEduValidation(formData.email) && !formData.email.toLowerCase().endsWith('.edu')) {
+      return 'Please use an educational (.edu) email address';
+    }
+
     if (formData.password.length < 8) return 'Password must be at least 8 characters.';
     if (formData.password !== formData.confirmPassword) return 'Passwords do not match.';
     if (!formData.displayName) return 'Display name is required.';

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import toast from 'react-hot-toast';
+import { bypassEduValidation } from '@/config/superAdmin';
 
 interface LoginFormProps {
   onToggleMode?: () => void;
@@ -24,9 +25,12 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
   const validateEmail = (email: string): string | null => {
     if (!email) return 'Email is required';
     if (!email.includes('@')) return 'Please enter a valid email';
-    if (!email.toLowerCase().endsWith('.edu')) {
+
+    // Check if it's a super admin OR .edu email
+    if (!bypassEduValidation(email) && !email.toLowerCase().endsWith('.edu')) {
       return 'Please use your educational (.edu) email address';
     }
+
     return null;
   };
 
