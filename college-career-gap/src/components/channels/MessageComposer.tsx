@@ -41,6 +41,9 @@ export function MessageComposer({
     if (!content.trim() || !isAdmin) {
       return;
     }
+
+    console.log('Posting message with subChannel:', selectedSubChannel); // DEBUG LOG
+
     setIsPosting(true);
     try {
       const newMessage = await postMessage(
@@ -50,6 +53,9 @@ export function MessageComposer({
         selectedTags,
         selectedSubChannel || undefined
       );
+
+      console.log('Message posted:', newMessage);
+
       onMessagePosted(newMessage);
       setContent('');
       setSelectedTags([]);

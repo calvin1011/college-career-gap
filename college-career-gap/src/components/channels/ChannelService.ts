@@ -551,7 +551,12 @@ export async function findChannelBySlug(slug: string): Promise<Channel | null> {
  * Posts a new message to a channel. (Admin only)
  */
 export async function postMessage(
-    channelId: string, authorId: string, content: string, tags: MessageTag[] = [], p0: string | undefined): Promise<Message> {
+  channelId: string,
+  authorId: string,
+  content: string,
+  tags: MessageTag[] = [],
+  subChannel?: string
+): Promise<Message> {
   const channelRef = doc(db, 'channels', channelId);
   const messagesRef = collection(db, 'messages');
 
@@ -575,7 +580,7 @@ export async function postMessage(
         throw new Error('Channel does not exist!');
       }
 
-      // Create the new message object with tags
+      // Create the new message object with tags and subChannel
       const newMessage: Omit<Message, 'id'> = {
         channelId,
         authorId,
@@ -585,6 +590,7 @@ export async function postMessage(
         isPinned: false,
         isEdited: false,
         createdAt: serverTimestamp(),
+        ...(subChannel ? { subChannel } : {}),
         metadata: {
           ...(linkPreview ? { links: [linkPreview] } : {}),
           ...(tags.length > 0 ? { tags } : {})
