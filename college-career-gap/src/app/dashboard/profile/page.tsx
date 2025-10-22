@@ -20,7 +20,6 @@ export default function ProfileSetupPage() {
   const [formData, setFormData] = useState({
     displayName: '',
     major: '',
-    secondMajor: '',
     graduationYear: '',
     university: '',
   });
@@ -34,7 +33,6 @@ export default function ProfileSetupPage() {
       setFormData({
         displayName: user.displayName || '',
         major: user.major || '',
-        secondMajor: user.secondMajor || '',
         graduationYear: user.profile?.graduationYear?.toString() || '',
         university: user.profile?.university || '',
       });
@@ -58,12 +56,6 @@ export default function ProfileSetupPage() {
     if (!user) return;
     if (!formData.major || !formData.displayName) {
       toast.error('Display Name and Primary Major are required.');
-      return;
-    }
-
-    // Validate that second major is different from first major
-    if (formData.secondMajor && formData.secondMajor === formData.major) {
-      toast.error('Second major must be different from primary major.');
       return;
     }
 
@@ -105,9 +97,6 @@ export default function ProfileSetupPage() {
   if (authLoading) return null;
 
   const currentAvatar = previewUrl || user?.profile?.avatar;
-
-  // Filter out the selected major from the second major dropdown
-  const availableSecondMajors = SUPPORTED_MAJORS.filter(major => major !== formData.major);
 
   return (
     <Card className="w-full md:max-w-lg md:mx-auto md:shadow-lg border-0 md:border rounded-none md:rounded-lg min-h-screen md:min-h-0">
@@ -179,29 +168,6 @@ export default function ProfileSetupPage() {
                 <option key={major} value={major}>{major}</option>
               ))}
             </select>
-          </div>
-
-          {/* Second Major (Optional) */}
-          <div>
-            <label htmlFor="secondMajor" className="block text-sm font-medium text-gray-700 mb-2">
-              Second Major <span className="text-gray-500 text-xs">(Optional - for double majors)</span>
-            </label>
-            <select
-              id="secondMajor"
-              value={formData.secondMajor}
-              onChange={handleChange('secondMajor')}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">None (single major)</option>
-              {availableSecondMajors.map(major => (
-                <option key={major} value={major}>{major}</option>
-              ))}
-            </select>
-            {formData.secondMajor && (
-              <p className="text-xs text-blue-600 mt-1">
-                ✓ You&apos;ll have access to both major channels and can switch between them easily
-              </p>
-            )}
           </div>
 
           <Input

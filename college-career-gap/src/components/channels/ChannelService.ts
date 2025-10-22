@@ -276,7 +276,6 @@ export async function updateUserProfileAndMajor(
   profileData: {
     displayName: string;
     major: string;
-    secondMajor?: string; // ADD THIS
     graduationYear: string;
     university: string;
   },
@@ -284,7 +283,6 @@ export async function updateUserProfileAndMajor(
 ) {
   const userRef = doc(db, 'users', userId);
   const newMajor = profileData.major as Major;
-  const newSecondMajor = profileData.secondMajor as Major | undefined;
   let avatarUrl: string | undefined = undefined;
 
   if (profilePic) {
@@ -301,20 +299,14 @@ export async function updateUserProfileAndMajor(
 
     const currentUserData = userDoc.data() as User;
     const oldMajor = currentUserData.major as Major;
-    const oldSecondMajor = currentUserData.secondMajor as Major | undefined;
 
     const majorHasChanged = oldMajor !== newMajor;
-    const secondMajorHasChanged = oldSecondMajor !== newSecondMajor;
 
     // Handle leaving old channels
     const channelsToLeave: string[] = [];
     if (majorHasChanged && oldMajor) {
       const oldChannel = await findChannelByMajor(oldMajor);
       if (oldChannel) channelsToLeave.push(oldChannel.id);
-    }
-    if (secondMajorHasChanged && oldSecondMajor) {
-      const oldSecondChannel = await findChannelByMajor(oldSecondMajor);
-      if (oldSecondChannel) channelsToLeave.push(oldSecondChannel.id);
     }
 
     // Remove from old channels
@@ -331,11 +323,6 @@ export async function updateUserProfileAndMajor(
     if (!newChannel) throw new Error(`Channel for major "${newMajor}" not found.`);
 
     const channelsToJoin = [newChannel.id];
-
-    if (newSecondMajor) {
-      const secondChannel = await findChannelByMajor(newSecondMajor);
-      if (secondChannel) channelsToJoin.push(secondChannel.id);
-    }
 
     // Join new channels
     for (const channelId of channelsToJoin) {
@@ -354,12 +341,6 @@ export async function updateUserProfileAndMajor(
       lastActiveAt: serverTimestamp(),
       joinedChannels: channelsToJoin,
     };
-
-    if (newSecondMajor) {
-      userUpdateData.secondMajor = newSecondMajor;
-    } else {
-      userUpdateData.secondMajor = null; // Remove second major if cleared
-    }
 
     if (profileData.graduationYear) {
       userUpdateData['profile.graduationYear'] = parseInt(profileData.graduationYear, 10);

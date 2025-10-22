@@ -6,8 +6,6 @@ export interface User {
   displayName: string;
   major: string;
   subChannel?: string;
-  secondMajor?: string;
-  secondSubChannel?: string;
   role: 'admin' | 'student';
   isVerified: boolean;
   joinedChannels: string[];
