@@ -65,30 +65,17 @@ export default function ChannelPage() {
       return messages;
     }
 
-    // ADMINS: Show messages based on the dropdown they selected
-    if (user.role === 'admin') {
-      // If admin hasn't selected a sub-channel filter, show ALL messages
-      if (!user.subChannel) {
-        return messages;
-      }
-
-      // Admin selected a specific sub-channel filter
-      // Show messages for that sub-channel + general messages (no subChannel property)
-      return messages.filter(message =>
-        message.subChannel === user.subChannel || !message.subChannel
-      );
-    }
-
-    // STUDENTS: Show messages based on their concentration
-    // If student hasn't selected a sub-channel, show all messages
+    // BOTH ADMINS AND STUDENTS: Same filtering logic
+    // If NO sub-channel selected (viewing "All Business Resources"), show ALL messages
     if (!user.subChannel) {
       return messages;
     }
 
-    // Student selected a concentration
-    // Show messages for their concentration + general messages (no subChannel property)
+    // If a SPECIFIC sub-channel is selected (e.g., "Accounting")
+    // Show ONLY messages tagged for that specific sub-channel
+    // Do NOT show general messages
     return messages.filter(message =>
-      message.subChannel === user.subChannel || !message.subChannel
+      message.subChannel === user.subChannel
     );
   }, [messages, user, channel]);
 
