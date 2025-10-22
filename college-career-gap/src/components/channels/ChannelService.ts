@@ -617,14 +617,14 @@ export async function postMessage(
 }
 
 /**
- * Updates an existing message's content. (Admin only)
+ * Updates an existing message's content, tags, and sub-channel. (Admin only)
  * This will also regenerate the link preview if the URL has changed.
  */
-
 export async function updateMessage(
   messageId: string,
   newContent: string,
-  tags: MessageTag[] = []
+  tags: MessageTag[] = [],
+  subChannel?: string
 ): Promise<void> {
   const messageRef = doc(db, 'messages', messageId);
 
@@ -649,6 +649,14 @@ export async function updateMessage(
         ...(tags.length > 0 ? { tags } : {})
       },
     };
+
+    // Add or remove subChannel based on whether it's provided
+    if (subChannel) {
+      updateData.subChannel = subChannel;
+    } else {
+      // If subChannel is empty, remove it from the document
+      updateData.subChannel = null;
+    }
 
     await updateDoc(messageRef, updateData);
   } catch (error: unknown) {
