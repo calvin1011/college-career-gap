@@ -12,7 +12,6 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
-  deleteDoc,
   writeBatch
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";

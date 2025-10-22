@@ -199,7 +199,7 @@ export default function ProfileSetupPage() {
             </select>
             {formData.secondMajor && (
               <p className="text-xs text-blue-600 mt-1">
-                ✓ You'll have access to both major channels and can switch between them easily
+                ✓ You&apos;ll have access to both major channels and can switch between them easily
               </p>
             )}
           </div>

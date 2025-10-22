@@ -92,7 +92,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               </svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Check Your Email</h2>
-            <p className="text-gray-600 mt-2">We've sent a verification link to <strong>{formData.email}</strong></p>
+            <p className="text-gray-600 mt-2">We&apos;ve sent a verification link to <strong>{formData.email}</strong></p>
           </div>
         </CardHeader>
         <CardContent>
@@ -102,7 +102,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
                 📧 Click the verification link to activate your account
               </p>
               <p className="text-xs text-blue-700 mt-2">
-                <strong>Check your spam/junk folder</strong> if you don't see it within 2 minutes.
+                <strong>Check your spam/junk folder</strong> if you don&apos;t see it within 2 minutes.
               </p>
             </div>
 
