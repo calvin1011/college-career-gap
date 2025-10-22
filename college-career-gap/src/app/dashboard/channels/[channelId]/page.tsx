@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
-import { Channel, Message, MessageTag } from '@/types';
+import { Channel, Message, MessageTag, hasSubChannels } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -22,6 +22,7 @@ import { FieldValue, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import { requestNotificationPermission } from '@/services/firebase/notifications';
 import { TagBadge } from '@/components/channels/TagBadge';
+import { SubChannelDropdown } from '@/components/channels/SubChannelDropdown';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -56,12 +57,32 @@ export default function ChannelPage() {
     }
   }, [user]);
 
+  // NEW: Filter messages based on user's selected sub-channel
+  const filteredMessages = useMemo(() => {
+    if (!user || !channel) return messages;
+
+    // If this major doesn't have sub-channels, show all messages
+    if (!hasSubChannels(channel.name)) {
+      return messages;
+    }
+
+    // If user hasn't selected a sub-channel, show all messages
+    if (!user.subChannel) {
+      return messages;
+    }
+
+    // Filter messages by sub-channel
+    return messages.filter(message =>
+      message.subChannel === user.subChannel ||
+      !message.subChannel // Also show messages without sub-channel (general messages)
+    );
+  }, [messages, user, channel]);
+
   const handleToggleNotifications = async () => {
     if (!user) return;
 
     try {
       if (notificationsEnabled) {
-        // Disable notifications
         const userDocRef = doc(db, "users", user.uid);
         await updateDoc(userDocRef, {
           notificationToken: null,
@@ -69,7 +90,6 @@ export default function ChannelPage() {
         setNotificationsEnabled(false);
         toast.success('Notifications disabled');
       } else {
-        // Enable notifications
         await requestNotificationPermission(user.uid);
         setNotificationsEnabled(true);
         toast.success('Notifications enabled');
@@ -107,6 +127,7 @@ export default function ChannelPage() {
   const loading = loadingChannel || loadingMessages;
   const isAdmin = user?.role === 'admin';
   const isMember = user?.joinedChannels.includes(channel?.id || '');
+  const hasAccess = isMember;
 
   if (loading) {
     return (
@@ -116,15 +137,17 @@ export default function ChannelPage() {
     );
   }
 
-  if (!channel || !isMember) {
+  if (!channel || !hasAccess) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Card className="max-w-md mx-auto text-center p-8"><CardContent>
-          <Lock size={48} className="mx-auto text-red-500 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-4">You are not a member of this channel.</p>
-          <a href="/dashboard" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Go to Dashboard</a>
-        </CardContent></Card>
+        <Card className="max-w-md mx-auto text-center p-8">
+          <CardContent>
+            <Lock size={48} className="mx-auto text-red-500 mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">You are not a member of this channel.</p>
+            <a href="/dashboard" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Go to Dashboard</a>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -149,7 +172,7 @@ export default function ChannelPage() {
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      {/* Channel Header - Full width on mobile */}
+      {/* Channel Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-4 md:px-6 md:py-6 md:rounded-lg md:shadow-sm md:mb-4 md:mx-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -165,7 +188,6 @@ export default function ChannelPage() {
               <span className="text-lg md:text-2xl font-bold text-blue-600">{channel.majorCode}</span>
             </div>
 
-            {/* Notification Toggle - Only for Students */}
             {!isAdmin && (
               <button
                 onClick={handleToggleNotifications}
@@ -191,7 +213,6 @@ export default function ChannelPage() {
               </Button>
             </Link>
 
-            {/* Invite Button - For Everyone */}
             <Button onClick={() => setShowInviteModal(true)} size="sm" className="text-xs md:text-sm whitespace-nowrap">
               <Share2 className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
               <span className="hidden md:inline">Invite</span>
@@ -200,23 +221,42 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      {/* Messages Feed - Full width on mobile with proper spacing */}
+      {/* Sub-Channel Dropdown */}
+      {channel && (
+        <SubChannelDropdown currentMajor={channel.name} />
+      )}
+
+      {/* Messages Feed */}
       <div className="flex-1 overflow-hidden flex flex-col bg-white md:rounded-lg md:shadow-lg">
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4">
-          {messages.length === 0 ? (
+          {filteredMessages.length === 0 ? (
             <div className="flex items-center justify-center text-center py-12">
               <div>
                 <Sparkles className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg md:text-xl font-semibold text-gray-700 mb-2">Welcome to {channel.name}!</h3>
-                <p className="text-sm md:text-base text-gray-500">No resources have been posted yet.</p>
+                <h3 className="text-lg md:text-xl font-semibold text-gray-700 mb-2">
+                  {user?.subChannel
+                    ? `No ${user.subChannel} resources yet`
+                    : `Welcome to ${channel.name}!`}
+                </h3>
+                <p className="text-sm md:text-base text-gray-500">
+                  {user?.subChannel
+                    ? 'Check back soon for resources in this concentration.'
+                    : 'No resources have been posted yet.'}
+                </p>
               </div>
             </div>
           ) : (
-            messages.map((message) => (
+            filteredMessages.map((message) => (
               <div key={message.id} className={`p-3 md:p-4 rounded-lg shadow-sm border-l-4 transition-colors ${message.isPinned ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 border-gray-200'}`}>
                 {message.isPinned && (
                   <div className="flex items-center mb-2 text-blue-600 text-xs md:text-sm font-medium">
                     <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1" /> Pinned Resource
+                  </div>
+                )}
+                {/* NEW: Show sub-channel badge if message is tagged */}
+                {message.subChannel && (
+                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mb-2">
+                    {message.subChannel}
                   </div>
                 )}
                 <div className="flex items-start space-x-2 md:space-x-3">
@@ -270,7 +310,6 @@ export default function ChannelPage() {
                       )}
                     </div>
 
-                    {/* Display Tags */}
                     {message.metadata?.tags && message.metadata.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {message.metadata.tags.map((tag) => (
@@ -295,10 +334,16 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      {/* Message Composer for Admins - Full width on mobile */}
+      {/* Message Composer for Admins */}
       {isAdmin && user && (
         <div className="flex-shrink-0 p-4 md:p-0 md:mt-4">
-          <MessageComposer channelId={channel.id} userId={user.uid} isAdmin={isAdmin} onMessagePosted={() => {}} />
+          <MessageComposer
+            channelId={channel.id}
+            channelName={channel.name}
+            userId={user.uid}
+            isAdmin={isAdmin}
+            onMessagePosted={() => {}}
+          />
         </div>
       )}
 

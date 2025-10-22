@@ -5,6 +5,9 @@ export interface User {
   email: string;
   displayName: string;
   major: string;
+  subChannel?: string;
+  secondMajor?: string;
+  secondSubChannel?: string;
   role: 'admin' | 'student';
   isVerified: boolean;
   joinedChannels: string[];
@@ -31,12 +34,14 @@ export interface Channel {
   messageCount: number;
   inviteCode: string;
   qrCodeData?: string;
+  parentChannel?: string;
+  subChannels?: string[];
   settings: {
     allowReactions: boolean;
     maxMessageLength: number;
     autoModeration: boolean;
   };
-  members: string[]; // Added members
+  members: string[];
   createdAt: Date | Timestamp | FieldValue;
   updatedAt: Date | Timestamp | FieldValue;
 }
@@ -47,6 +52,7 @@ export interface Message {
   authorId: string;
   content: string;
   type: 'text' | 'link' | 'media';
+  subChannel?: string;
   metadata?: {
     links?: LinkPreview[];
     media?: MediaAttachment[];
@@ -138,5 +144,35 @@ export const SUPPORTED_MAJORS = [
 ] as const;
 
 export type Major = typeof SUPPORTED_MAJORS[number];
+
+// Business sub-channels from your list
+export const BUSINESS_SUBCHANNELS = [
+  'Marketing',
+  'Management',
+  'Finance',
+  'Accounting',
+  'Health Care Admin',
+  'Agri Business',
+  'Project Management',
+  'Hospitality'
+] as const;
+
+export type BusinessSubChannel = typeof BUSINESS_SUBCHANNELS[number];
+
+// Configuration for sub-channels by major
+export const SUB_CHANNEL_CONFIG: Record<string, readonly string[]> = {
+  'Business': BUSINESS_SUBCHANNELS,
+  // Add more majors as you gather data
+} as const;
+
+// Helper to check if a major has sub-channels
+export function hasSubChannels(major: string): boolean {
+  return major in SUB_CHANNEL_CONFIG;
+}
+
+// Helper to get sub-channels for a major
+export function getSubChannelsForMajor(major: string): readonly string[] | undefined {
+  return SUB_CHANNEL_CONFIG[major];
+}
 
 export const DEFAULT_REACTIONS = ['👍', '❤️', '🔥', '💡', '🎯', '📖', '🚀'] as const;
