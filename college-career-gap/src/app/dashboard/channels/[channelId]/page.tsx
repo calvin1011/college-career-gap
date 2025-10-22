@@ -57,7 +57,6 @@ export default function ChannelPage() {
     }
   }, [user]);
 
-  // NEW: Filter messages based on user's selected sub-channel
   const filteredMessages = useMemo(() => {
     if (!user || !channel) return messages;
 
@@ -66,17 +65,33 @@ export default function ChannelPage() {
       return messages;
     }
 
-    // If user hasn't selected a sub-channel, show all messages
+    // ADMINS: Show messages based on the dropdown they selected
+    if (user.role === 'admin') {
+      // If admin hasn't selected a sub-channel filter, show ALL messages
+      if (!user.subChannel) {
+        return messages;
+      }
+
+      // Admin selected a specific sub-channel filter
+      // Show messages for that sub-channel + general messages (no subChannel property)
+      return messages.filter(message =>
+        message.subChannel === user.subChannel || !message.subChannel
+      );
+    }
+
+    // STUDENTS: Show messages based on their concentration
+    // If student hasn't selected a sub-channel, show all messages
     if (!user.subChannel) {
       return messages;
     }
 
-    // Filter messages by sub-channel
+    // Student selected a concentration
+    // Show messages for their concentration + general messages (no subChannel property)
     return messages.filter(message =>
-      message.subChannel === user.subChannel ||
-      !message.subChannel // Also show messages without sub-channel (general messages)
+      message.subChannel === user.subChannel || !message.subChannel
     );
   }, [messages, user, channel]);
+
 
   const handleToggleNotifications = async () => {
     if (!user) return;
