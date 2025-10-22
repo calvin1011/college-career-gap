@@ -157,9 +157,10 @@ export default function ChannelPage() {
   const handleUpdateMessage = async (
     messageId: string,
     newContent: string,
-    tags: MessageTag[]
+    tags: MessageTag[],
+    subChannel?: string
   ) => {
-    await updateMessage(messageId, newContent, tags);
+    await updateMessage(messageId, newContent, tags, subChannel);
   };
 
   const formatTimestamp = (timestamp: Date | Timestamp | FieldValue): string => {
@@ -359,6 +360,7 @@ export default function ChannelPage() {
       {editingMessage && (
         <EditMessageModal
           message={editingMessage}
+          channelName={channel.name}
           onClose={() => setEditingMessage(null)}
           onSave={handleUpdateMessage}
         />

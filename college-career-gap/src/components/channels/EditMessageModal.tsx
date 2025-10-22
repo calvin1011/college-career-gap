@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
-import { Message, MessageTag } from '@/types';
+import { Message, MessageTag, hasSubChannels, getSubChannelsForMajor } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { TagSelector } from './TagSelector';
 import toast from 'react-hot-toast';
 
 interface EditMessageModalProps {
   message: Message;
+  channelName: string;
   onClose: () => void;
-  onSave: (messageId: string, newContent: string, tags: MessageTag[]) => Promise<void>;
+  onSave: (messageId: string, newContent: string, tags: MessageTag[], subChannel?: string) => Promise<void>;
 }
 
-export function EditMessageModal({ message, onClose, onSave }: EditMessageModalProps) {
+export function EditMessageModal({ message, channelName, onClose, onSave }: EditMessageModalProps) {
   const [content, setContent] = useState(message.content);
   const [selectedTags, setSelectedTags] = useState<MessageTag[]>(
     (message.metadata?.tags as MessageTag[]) || []
   );
+  const [selectedSubChannel, setSelectedSubChannel] = useState<string>(
+    message.subChannel || ''
+  );
   const [isSaving, setIsSaving] = useState(false);
+
+  // Check if this channel has sub-channels
+  const showSubChannelField = hasSubChannels(channelName);
+  const subChannelOptions = showSubChannelField ? getSubChannelsForMajor(channelName) : null;
 
   const handleTagToggle = (tag: MessageTag) => {
     setSelectedTags(prev =>
@@ -31,15 +39,19 @@ export function EditMessageModal({ message, onClose, onSave }: EditMessageModalP
       return;
     }
 
-    if (content === message.content &&
-        JSON.stringify(selectedTags.sort()) === JSON.stringify((message.metadata?.tags || []).sort())) {
+    // Check if anything changed
+    const contentChanged = content !== message.content;
+    const tagsChanged = JSON.stringify(selectedTags.sort()) !== JSON.stringify((message.metadata?.tags || []).sort());
+    const subChannelChanged = selectedSubChannel !== (message.subChannel || '');
+
+    if (!contentChanged && !tagsChanged && !subChannelChanged) {
       onClose();
       return;
     }
 
     setIsSaving(true);
     try {
-      await onSave(message.id, content, selectedTags);
+      await onSave(message.id, content, selectedTags, selectedSubChannel || undefined);
       toast.success('Message updated successfully!');
       onClose();
     } catch {
@@ -55,6 +67,31 @@ export function EditMessageModal({ message, onClose, onSave }: EditMessageModalP
         <h2 className="text-xl font-bold mb-4">Edit Message</h2>
 
         <div className="space-y-4">
+          {/* Sub-Channel Selector */}
+          {showSubChannelField && subChannelOptions && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Concentration <span className="text-gray-500 text-xs">(Optional - leave blank for all students)</span>
+              </label>
+              <select
+                value={selectedSubChannel}
+                onChange={(e) => setSelectedSubChannel(e.target.value)}
+                className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All {channelName} students</option>
+                {subChannelOptions.map((subChannel) => (
+                  <option key={subChannel} value={subChannel}>
+                    {subChannel} only
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Change which concentration sees this message
+              </p>
+            </div>
+          )}
+
+          {/* Message Content */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Message Content
@@ -67,6 +104,7 @@ export function EditMessageModal({ message, onClose, onSave }: EditMessageModalP
             />
           </div>
 
+          {/* Tag Selector */}
           <TagSelector
             selectedTags={selectedTags}
             onTagToggle={handleTagToggle}
