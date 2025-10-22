@@ -42,7 +42,7 @@ export function MessageComposer({
       return;
     }
 
-    console.log('Posting message with subChannel:', selectedSubChannel); // DEBUG LOG
+    console.log('Posting message with subChannel:', selectedSubChannel);
 
     setIsPosting(true);
     try {
