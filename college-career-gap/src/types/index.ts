@@ -159,10 +159,22 @@ export const BUSINESS_SUBCHANNELS = [
 
 export type BusinessSubChannel = typeof BUSINESS_SUBCHANNELS[number];
 
+// Computer Science sub-channels
+export const CS_SUBCHANNELS = [
+  'Software Engineering',
+  'Data Science',
+  'Cybersecurity',
+  'AI/ML',
+  'Web Development',
+  'Game Development'
+] as const;
+
+export type CSSubChannel = typeof CS_SUBCHANNELS[number];
+
 // Configuration for sub-channels by major
 export const SUB_CHANNEL_CONFIG: Record<string, readonly string[]> = {
   'Business': BUSINESS_SUBCHANNELS,
-  // Add more majors as you gather data
+  'Computer Science': CS_SUBCHANNELS
 } as const;
 
 // Helper to check if a major has sub-channels
