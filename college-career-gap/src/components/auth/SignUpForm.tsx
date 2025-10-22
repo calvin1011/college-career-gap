@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import toast from 'react-hot-toast';
-import { Major, SUPPORTED_MAJORS } from '@/types';
+import { Major, SUPPORTED_MAJORS, getSubChannelsForMajor, hasSubChannels } from '@/types';
 import { bypassEduValidation } from '@/config/superAdmin';
 
 interface SignUpFormProps {
@@ -21,6 +21,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     displayName: '',
     university: '',
     major: '',
+    subChannel: '',
     graduationYear: '',
   });
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   const { signUp } = useAuth();
 
   const validateForm = (): string | null => {
-    // Check if super admin OR .edu email
     if (!bypassEduValidation(formData.email) && !formData.email.toLowerCase().endsWith('.edu')) {
       return 'Please use an educational (.edu) email address';
     }
@@ -39,6 +39,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     if (!formData.displayName) return 'Display name is required.';
     if (!formData.university) return 'University is required.';
     if (!formData.major) return 'Please select your major.';
+
     return null;
   };
 
@@ -58,7 +59,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         formData.displayName,
         formData.university,
         formData.major as Major,
-        formData.graduationYear
+        formData.graduationYear,
+        formData.subChannel // NEW: Pass sub-channel to signUp
       );
       setShowSuccess(true);
     } catch (error: unknown) {
@@ -69,7 +71,14 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   };
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    const newValue = e.target.value;
+
+    // If major changes, reset sub-channel
+    if (field === 'major') {
+      setFormData(prev => ({ ...prev, [field]: newValue, subChannel: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: newValue }));
+    }
   };
 
   if (showSuccess) {
@@ -97,13 +106,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               </p>
             </div>
 
-            {/* Add a helpful tip box */}
-            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
-              <p className="text-xs text-yellow-800">
-                <strong> Tip:</strong> Add noreply@adams-resources-hub.firebaseapp.com to your contacts to prevent future emails from going to spam.
-              </p>
-            </div>
-
             {onToggleMode && (
               <Button variant="outline" className="w-full" onClick={onToggleMode}>
                 Back to Sign In
@@ -115,9 +117,17 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     );
   }
 
+  const showSubChannelField = hasSubChannels(formData.major);
+  const subChannelOptions = showSubChannelField ? getSubChannelsForMajor(formData.major) : null;
+
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader><div className="text-center"><h2 className="text-2xl font-bold text-gray-900">Join Adams State Hub</h2><p className="text-gray-600">Create your account to access career resources</p></div></CardHeader>
+      <CardHeader>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900">Join Adams State Hub</h2>
+          <p className="text-gray-600">Create your account to access career resources</p>
+        </div>
+      </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Display Name" value={formData.displayName} onChange={handleChange('displayName')} required />
@@ -131,6 +141,28 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {SUPPORTED_MAJORS.map(major => (<option key={major} value={major}>{major}</option>))}
             </select>
           </div>
+
+          {/* NEW: Sub-Channel selector - only show for majors that have sub-channels */}
+          {showSubChannelField && subChannelOptions && (
+            <div className="space-y-2">
+              <label htmlFor="subChannel" className="block text-sm font-medium text-gray-700">
+                {formData.major} Concentration <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="subChannel"
+                value={formData.subChannel}
+                onChange={handleChange('subChannel')}
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select your concentration</option>
+                {subChannelOptions.map(subChannel => (
+                  <option key={subChannel} value={subChannel}>{subChannel}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500">You can change this later in your profile</p>
+            </div>
+          )}
 
           <Input type="number" label="Graduation Year (Optional)" value={formData.graduationYear} onChange={handleChange('graduationYear')} placeholder="e.g., 2025" />
           <Input type="password" label="Password" value={formData.password} onChange={handleChange('password')} placeholder="At least 8 characters" required />

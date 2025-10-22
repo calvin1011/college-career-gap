@@ -12,7 +12,6 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
-  deleteDoc,
   writeBatch
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -274,70 +273,98 @@ export async function leaveChannel(channelId: string, userId: string) {
  */
 export async function updateUserProfileAndMajor(
   userId: string,
-  profileData: { displayName: string; major: string; graduationYear: string; university: string; },
-  profilePic: File | null // Add the new file parameter
+  profileData: {
+    displayName: string;
+    major: string;
+    secondMajor?: string; // ADD THIS
+    graduationYear: string;
+    university: string;
+  },
+  profilePic: File | null
 ) {
   const userRef = doc(db, 'users', userId);
   const newMajor = profileData.major as Major;
+  const newSecondMajor = profileData.secondMajor as Major | undefined;
   let avatarUrl: string | undefined = undefined;
 
-  // Handle the file upload first, outside of the transaction.
   if (profilePic) {
-    // We'll create a simple path: avatars/{userId}
-    // This will overwrite the previous avatar, which is fine for profile pictures.
     const storageRef = ref(storage, `avatars/${userId}`);
     toast.loading('Uploading picture...');
     const snapshot = await uploadBytes(storageRef, profilePic);
     avatarUrl = await getDownloadURL(snapshot.ref);
-    toast.dismiss(); // Dismiss loading toast
+    toast.dismiss();
   }
 
-  // Run the Firestore database updates within a transaction.
   return runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
     if (!userDoc.exists()) throw new Error("User not found!");
 
     const currentUserData = userDoc.data() as User;
     const oldMajor = currentUserData.major as Major;
-    const majorHasChanged = oldMajor !== newMajor;
+    const oldSecondMajor = currentUserData.secondMajor as Major | undefined;
 
-    // Handle leaving the old channel if the major changed
+    const majorHasChanged = oldMajor !== newMajor;
+    const secondMajorHasChanged = oldSecondMajor !== newSecondMajor;
+
+    // Handle leaving old channels
+    const channelsToLeave: string[] = [];
     if (majorHasChanged && oldMajor) {
       const oldChannel = await findChannelByMajor(oldMajor);
-      if (oldChannel) {
-        const oldChannelRef = doc(db, 'channels', oldChannel.id);
-        transaction.update(oldChannelRef, {
-          members: arrayRemove(userId),
-          memberCount: increment(-1),
-        });
-      }
+      if (oldChannel) channelsToLeave.push(oldChannel.id);
+    }
+    if (secondMajorHasChanged && oldSecondMajor) {
+      const oldSecondChannel = await findChannelByMajor(oldSecondMajor);
+      if (oldSecondChannel) channelsToLeave.push(oldSecondChannel.id);
     }
 
-    // Find and join the new channel
+    // Remove from old channels
+    for (const channelId of channelsToLeave) {
+      const channelRef = doc(db, 'channels', channelId);
+      transaction.update(channelRef, {
+        members: arrayRemove(userId),
+        memberCount: increment(-1),
+      });
+    }
+
+    // Get new channels to join
     const newChannel = await findChannelByMajor(newMajor);
     if (!newChannel) throw new Error(`Channel for major "${newMajor}" not found.`);
 
-    const newChannelRef = doc(db, 'channels', newChannel.id);
-    transaction.update(newChannelRef, {
-      members: arrayUnion(userId),
-      memberCount: increment(1),
-    });
+    const channelsToJoin = [newChannel.id];
 
-    // Prepare the final user document update
-    const userUpdateData: { [key: string]: unknown } = {
-        displayName: profileData.displayName,
-        major: newMajor,
-        'profile.university': profileData.university,
-        lastActiveAt: serverTimestamp(),
-        joinedChannels: [newChannel.id],
-    };
-
-    // Conditionally add graduationYear to avoid 'undefined'
-    if (profileData.graduationYear) {
-        userUpdateData['profile.graduationYear'] = parseInt(profileData.graduationYear, 10);
+    if (newSecondMajor) {
+      const secondChannel = await findChannelByMajor(newSecondMajor);
+      if (secondChannel) channelsToJoin.push(secondChannel.id);
     }
 
-    // Add the new avatar URL to the update object if it exists
+    // Join new channels
+    for (const channelId of channelsToJoin) {
+      const channelRef = doc(db, 'channels', channelId);
+      transaction.update(channelRef, {
+        members: arrayUnion(userId),
+        memberCount: increment(1),
+      });
+    }
+
+    // Update user document
+    const userUpdateData: { [key: string]: unknown } = {
+      displayName: profileData.displayName,
+      major: newMajor,
+      'profile.university': profileData.university,
+      lastActiveAt: serverTimestamp(),
+      joinedChannels: channelsToJoin,
+    };
+
+    if (newSecondMajor) {
+      userUpdateData.secondMajor = newSecondMajor;
+    } else {
+      userUpdateData.secondMajor = null; // Remove second major if cleared
+    }
+
+    if (profileData.graduationYear) {
+      userUpdateData['profile.graduationYear'] = parseInt(profileData.graduationYear, 10);
+    }
+
     if (avatarUrl) {
       userUpdateData['profile.avatar'] = avatarUrl;
     }
@@ -524,11 +551,7 @@ export async function findChannelBySlug(slug: string): Promise<Channel | null> {
  * Posts a new message to a channel. (Admin only)
  */
 export async function postMessage(
-  channelId: string,
-  authorId: string,
-  content: string,
-  tags: MessageTag[] = []
-): Promise<Message> {
+    channelId: string, authorId: string, content: string, tags: MessageTag[] = [], p0: string | undefined): Promise<Message> {
   const channelRef = doc(db, 'channels', channelId);
   const messagesRef = collection(db, 'messages');
 

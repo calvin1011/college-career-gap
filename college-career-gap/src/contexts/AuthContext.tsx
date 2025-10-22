@@ -23,7 +23,15 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => Promise<void>;
+  signUp: (
+  email: string,
+  password: string,
+  displayName: string,
+  university: string,
+  major: Major,
+  gradYear: string,
+  subChannel?: string
+) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   handleDeleteAccount: () => Promise<void>;
@@ -72,11 +80,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [firebaseUser]);
 
-  const signUp = async (email: string, password: string, displayName: string, university: string, major: Major, gradYear: string) => {
-  // Check if super admin OR .edu email
-  if (!bypassEduValidation(email) && !email.toLowerCase().endsWith('.edu')) {
-    throw new Error('Please use your educational (.edu) email address');
-  }
+  const signUp = async (
+    email: string,
+    password: string,
+    displayName: string,
+    university: string,
+    major: Major,
+    gradYear: string,
+    subChannel?: string
+  ) => {
+    // Check if super admin OR .edu email
+    if (!bypassEduValidation(email) && !email.toLowerCase().endsWith('.edu')) {
+      throw new Error('Please use your educational (.edu) email address');
+    }
 
   const gradYearValue = gradYear.trim();
   let graduationYear: number | undefined;
@@ -106,7 +122,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       displayName,
       major,
-      role: userRole, // Set role based on super admin check
+      subChannel: subChannel || undefined,
+      role: userRole,
       isVerified: false,
       joinedChannels: [newChannel.id],
       createdAt: new Date(),

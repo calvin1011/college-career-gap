@@ -20,6 +20,7 @@ export default function ProfileSetupPage() {
   const [formData, setFormData] = useState({
     displayName: '',
     major: '',
+    secondMajor: '',
     graduationYear: '',
     university: '',
   });
@@ -33,6 +34,7 @@ export default function ProfileSetupPage() {
       setFormData({
         displayName: user.displayName || '',
         major: user.major || '',
+        secondMajor: user.secondMajor || '',
         graduationYear: user.profile?.graduationYear?.toString() || '',
         university: user.profile?.university || '',
       });
@@ -55,9 +57,16 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     if (!user) return;
     if (!formData.major || !formData.displayName) {
-      toast.error('Display Name and Major are required.');
+      toast.error('Display Name and Primary Major are required.');
       return;
     }
+
+    // Validate that second major is different from first major
+    if (formData.secondMajor && formData.secondMajor === formData.major) {
+      toast.error('Second major must be different from primary major.');
+      return;
+    }
+
     setLoading(true);
     try {
       const newChannel = await updateUserProfileAndMajor(user.uid, formData, profilePicFile);
@@ -91,16 +100,20 @@ export default function ProfileSetupPage() {
     } finally {
       setIsDeleting(false);
     }
-  }
+  };
 
   if (authLoading) return null;
 
   const currentAvatar = previewUrl || user?.profile?.avatar;
 
+  // Filter out the selected major from the second major dropdown
+  const availableSecondMajors = SUPPORTED_MAJORS.filter(major => major !== formData.major);
+
   return (
     <Card className="w-full md:max-w-lg md:mx-auto md:shadow-lg border-0 md:border rounded-none md:rounded-lg min-h-screen md:min-h-0">
       <CardHeader className="pt-8 md:pt-6">
         <h2 className="text-2xl font-bold text-center text-gray-900">Profile Settings</h2>
+        <p className="text-sm text-center text-gray-600 mt-1">Manage your profile and majors</p>
       </CardHeader>
       <CardContent className="px-6 md:px-6">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -134,19 +147,77 @@ export default function ProfileSetupPage() {
               Change Picture
             </Button>
           </div>
-          <Input label="Display Name" value={formData.displayName} onChange={handleChange('displayName')} required />
-          <Input label="University" value={formData.university} onChange={handleChange('university')} required />
+
+          <Input
+            label="Display Name"
+            value={formData.displayName}
+            onChange={handleChange('displayName')}
+            required
+          />
+
+          <Input
+            label="University"
+            value={formData.university}
+            onChange={handleChange('university')}
+            required
+          />
+
+          {/* Primary Major */}
           <div>
-            <label htmlFor="major" className="block text-sm font-medium text-gray-700 mb-2">Major</label>
-            <select id="major" value={formData.major} onChange={handleChange('major')} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option value="">Select your major</option>
-              {SUPPORTED_MAJORS.map(major => (<option key={major} value={major}>{major}</option>))}
+            <label htmlFor="major" className="block text-sm font-medium text-gray-700 mb-2">
+              Primary Major <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="major"
+              value={formData.major}
+              onChange={handleChange('major')}
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select your primary major</option>
+              {SUPPORTED_MAJORS.map(major => (
+                <option key={major} value={major}>{major}</option>
+              ))}
             </select>
           </div>
-          <Input type="number" label="Graduation Year (Optional)" value={formData.graduationYear} onChange={handleChange('graduationYear')} placeholder="e.g., 2025" />
-          <Button type="submit" className="w-full" loading={loading}>Save Changes</Button>
+
+          {/* Second Major (Optional) */}
+          <div>
+            <label htmlFor="secondMajor" className="block text-sm font-medium text-gray-700 mb-2">
+              Second Major <span className="text-gray-500 text-xs">(Optional - for double majors)</span>
+            </label>
+            <select
+              id="secondMajor"
+              value={formData.secondMajor}
+              onChange={handleChange('secondMajor')}
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">None (single major)</option>
+              {availableSecondMajors.map(major => (
+                <option key={major} value={major}>{major}</option>
+              ))}
+            </select>
+            {formData.secondMajor && (
+              <p className="text-xs text-blue-600 mt-1">
+                ✓ You&apos;ll have access to both major channels and can switch between them easily
+              </p>
+            )}
+          </div>
+
+          <Input
+            type="number"
+            label="Graduation Year (Optional)"
+            value={formData.graduationYear}
+            onChange={handleChange('graduationYear')}
+            placeholder="e.g., 2025"
+          />
+
+          <Button type="submit" className="w-full" loading={loading}>
+            Save Changes
+          </Button>
         </form>
       </CardContent>
+
       <CardFooter className="flex-col items-start bg-red-50 border-t-2 border-red-200">
         <h3 className="text-lg font-semibold text-red-800 flex items-center">
           <AlertTriangle className="w-5 h-5 mr-2" />
