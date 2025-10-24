@@ -75,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <main className="flex-1 overflow-hidden">
           {children}
         </main>
       </div>
@@ -83,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Floating Feedback Button */}
       <Button
         onClick={() => setIsFeedbackModalOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-30"
         aria-label="Submit Feedback"
       >
         <MessageSquarePlus size={24} />
