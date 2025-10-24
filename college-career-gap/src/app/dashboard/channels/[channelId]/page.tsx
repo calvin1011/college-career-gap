@@ -133,7 +133,7 @@ export default function ChannelPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -141,7 +141,7 @@ export default function ChannelPage() {
 
   if (!channel || !hasAccess) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-full">
         <Card className="max-w-md mx-auto text-center p-8">
           <CardContent>
             <Lock size={48} className="mx-auto text-red-500 mb-4" />
@@ -176,19 +176,19 @@ export default function ChannelPage() {
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Channel Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-4 md:px-6 md:py-6 md:rounded-lg md:shadow-sm md:mb-4 md:mx-0">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-4 md:px-6 md:py-5">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2 truncate">{channel.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 truncate">{channel.name}</h1>
             <p className="text-sm md:text-base text-gray-600 mb-3">{channel.description}</p>
             <div className="flex items-center space-x-3 md:space-x-4 text-xs md:text-sm text-gray-500">
               <span className="flex items-center"><Users className="w-3 h-3 md:w-4 md:h-4 mr-1" />{channel.memberCount || 0} members</span>
               <span className="flex items-center"><MessageCircle className="w-3 h-3 md:w-4 md:h-4 mr-1" />{channel.messageCount || 0} resources</span>
             </div>
           </div>
-          <div className="flex flex-col items-end space-y-2 md:space-y-3 ml-3">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-lg md:text-2xl font-bold text-blue-600">{channel.majorCode}</span>
+          <div className="flex flex-col items-end space-y-2 ml-3">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-lg md:text-xl font-bold text-blue-600">{channel.majorCode}</span>
             </div>
 
             {!isAdmin && (
@@ -230,7 +230,7 @@ export default function ChannelPage() {
       )}
 
       {/* Messages Feed */}
-      <div className="flex-1 overflow-hidden flex flex-col bg-white md:rounded-lg md:shadow-lg">
+      <div className="flex-1 overflow-hidden flex flex-col bg-white">
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4">
           {filteredMessages.length === 0 ? (
             <div className="flex items-center justify-center text-center py-12">
@@ -339,7 +339,7 @@ export default function ChannelPage() {
 
       {/* Message Composer for Admins */}
       {isAdmin && user && (
-        <div className="flex-shrink-0 p-4 md:p-0 md:mt-4">
+        <div className="flex-shrink-0 border-t border-gray-200">
           <MessageComposer
             channelId={channel.id}
             channelName={channel.name}
