@@ -214,7 +214,7 @@ export default function ProfileSetupPage() {
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    This determines which resources you'll see in your major channel
+                    This determines which resources you&apos;ll see in your major channel
                   </p>
                 </>
               ) : (

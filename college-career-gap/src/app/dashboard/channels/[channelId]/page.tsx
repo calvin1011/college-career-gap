@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
-import { Channel, Message, MessageTag, hasSubChannels, getSubChannelsForMajor } from '@/types';
+import { Channel, Message, MessageTag, hasSubChannels } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -107,7 +107,7 @@ export default function ChannelPage() {
     setModerationLoading(message.id);
     try {
       await togglePinMessage(message.id, message.isPinned);
-    } catch (error) {
+    } catch {
       // Error toast is handled in the service
     } finally {
       setModerationLoading(null);
@@ -119,7 +119,7 @@ export default function ChannelPage() {
       setModerationLoading(message.id);
       try {
         await deleteMessage(channel!.id, message.id);
-      } catch (error) {
+      } catch {
         // Error toast is handled in the service
       } finally {
         setModerationLoading(null);

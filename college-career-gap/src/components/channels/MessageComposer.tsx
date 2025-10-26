@@ -109,7 +109,7 @@ export function MessageComposer({
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Select a concentration to target specific students, or leave as "All" for everyone
+                  Select a concentration to target specific students, or leave as &quot;All&quot; for everyone
                 </p>
               </>
             ) : (

@@ -9,6 +9,7 @@ import { Plus, Trash2, Edit2, Save, X, AlertTriangle, Users, Lock } from 'lucide
 import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import toast from 'react-hot-toast';
+import { Channel } from '@/types';
 
 interface StudentCount {
   [subChannel: string]: number;
@@ -16,7 +17,7 @@ interface StudentCount {
 
 export default function ManageSubChannelsPage() {
   const { user, loading: authLoading } = useAuth();
-  const [channel, setChannel] = useState<any>(null);
+  const [channel, setChannel] = useState<Channel | null>(null);
   const [newSubChannel, setNewSubChannel] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -42,7 +43,7 @@ export default function ManageSubChannelsPage() {
     const channelRef = doc(db, 'channels', majorSlug);
     const unsubscribe = onSnapshot(channelRef, (doc) => {
       if (doc.exists()) {
-        setChannel({ id: doc.id, ...doc.data() });
+        setChannel({ id: doc.id, ...doc.data() } as Channel);
       }
       setLoading(false);
     });
@@ -122,7 +123,7 @@ export default function ManageSubChannelsPage() {
 
   const startEdit = (index: number) => {
     setEditingIndex(index);
-    setEditValue(channel.subChannels[index]);
+    setEditValue(channel?.subChannels?.[index] || '');
   };
 
   const saveEdit = async (index: number) => {
@@ -133,14 +134,15 @@ export default function ManageSubChannelsPage() {
 
     const trimmedValue = editValue.trim();
 
-    if (channel.subChannels.includes(trimmedValue) && channel.subChannels[index] !== trimmedValue) {
+    if (channel?.subChannels?.includes(trimmedValue) && channel?.subChannels?.[index] !== trimmedValue) {
       toast.error('A concentration with this name already exists');
       return;
     }
 
     setActionLoading(true);
     try {
-      const oldName = channel.subChannels[index];
+      const oldName = channel?.subChannels?.[index];
+      if (!oldName) return;
       const channelRef = doc(db, 'channels', majorSlug);
 
       // Remove old, add new
@@ -231,7 +233,7 @@ export default function ManageSubChannelsPage() {
             <Input
               value={newSubChannel}
               onChange={(e) => setNewSubChannel(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !actionLoading && handleAddSubChannel()}
+              onKeyDown={(e) => e.key === 'Enter' && !actionLoading && handleAddSubChannel()}
               placeholder="Enter new concentration name (e.g., Marketing, Finance...)"
               disabled={actionLoading}
             />
@@ -274,7 +276,7 @@ export default function ManageSubChannelsPage() {
                       <Input
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && !actionLoading && saveEdit(index)}
+                        onKeyDown={(e) => e.key === 'Enter' && !actionLoading && saveEdit(index)}
                         disabled={actionLoading}
                         className="flex-1"
                       />
@@ -348,7 +350,7 @@ export default function ManageSubChannelsPage() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Changes take effect immediately. Students will see updated concentrations in their dropdown menus. Removing a concentration will reset affected students to "All {channel.name} Resources".
+              <strong>Note:</strong> Changes take effect immediately. Students will see updated concentrations in their dropdown menus. Removing a concentration will reset affected students to &#34;All {channel.name} Resources&#34;.
             </p>
           </div>
         </div>
@@ -370,7 +372,7 @@ export default function ManageSubChannelsPage() {
                   </p>
                   {showDeleteWarning.count > 0 && (
                     <p className="text-sm text-gray-600 mt-2">
-                      <strong>{showDeleteWarning.count} student{showDeleteWarning.count !== 1 ? 's are' : ' is'}</strong> currently in this concentration and will be reset to view "All {channel.name} Resources".
+                      <strong>{showDeleteWarning.count} student{showDeleteWarning.count !== 1 ? 's are' : ' is'}</strong> currently in this concentration and will be reset to view &#34;All {channel.name} Resources&#34;.
                     </p>
                   )}
                 </div>
