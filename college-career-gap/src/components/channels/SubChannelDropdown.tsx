@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getSubChannelsForMajor, hasSubChannels } from '@/types';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import toast from 'react-hot-toast';
+import { useSubChannels } from '@/hooks/useSubChannels';
 
 interface SubChannelDropdownProps {
   currentMajor: string;
@@ -13,13 +13,13 @@ interface SubChannelDropdownProps {
 
 export function SubChannelDropdown({ currentMajor }: SubChannelDropdownProps) {
   const { user } = useAuth();
+  const { subChannels, hasSubChannels: majorHasSubChannels, loading } = useSubChannels(currentMajor);
 
   // Check if this major has sub-channels
-  if (!hasSubChannels(currentMajor)) {
+  if (!majorHasSubChannels || loading) {
     return null;
   }
 
-  const subChannels = getSubChannelsForMajor(currentMajor);
   if (!subChannels || subChannels.length === 0) {
     return null;
   }
@@ -32,10 +32,9 @@ export function SubChannelDropdown({ currentMajor }: SubChannelDropdownProps) {
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        subChannel: newSubChannel || null // Set to null if empty string
+        subChannel: newSubChannel || null
       });
       toast.success(newSubChannel ? `Switched to ${newSubChannel}` : 'Viewing all resources');
-      // Page will auto-refresh due to real-time listener in AuthContext
     } catch (error) {
       console.error('Error updating sub-channel:', error);
       toast.error('Failed to switch concentration');
