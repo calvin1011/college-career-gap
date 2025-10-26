@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import toast from 'react-hot-toast';
-import { Major, SUPPORTED_MAJORS, getSubChannelsForMajor, hasSubChannels } from '@/types';
+import { Major, SUPPORTED_MAJORS } from '@/types';
 import { bypassEduValidation } from '@/config/superAdmin';
+import { useSubChannels } from '@/hooks/useSubChannels';
 
 interface SignUpFormProps {
   onToggleMode?: () => void;
@@ -29,6 +30,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
   const { signUp } = useAuth();
 
+  // Fetch sub-channels dynamically based on selected major
+  const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(formData.major);
+
   const validateForm = (): string | null => {
     if (!bypassEduValidation(formData.email) && !formData.email.toLowerCase().endsWith('.edu')) {
       return 'Please use an educational (.edu) email address';
@@ -39,6 +43,11 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     if (!formData.displayName) return 'Display name is required.';
     if (!formData.university) return 'University is required.';
     if (!formData.major) return 'Please select your major.';
+
+    // Only require sub-channel if the major has sub-channels
+    if (majorHasSubChannels && !formData.subChannel) {
+      return 'Please select your concentration.';
+    }
 
     return null;
   };
@@ -60,7 +69,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         formData.university,
         formData.major as Major,
         formData.graduationYear,
-        formData.subChannel // NEW: Pass sub-channel to signUp
+        formData.subChannel || undefined
       );
       setShowSuccess(true);
     } catch (error: unknown) {
@@ -117,9 +126,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     );
   }
 
-  const showSubChannelField = hasSubChannels(formData.major);
-  const subChannelOptions = showSubChannelField ? getSubChannelsForMajor(formData.major) : null;
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -142,24 +148,34 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             </select>
           </div>
 
-          {/* NEW: Sub-Channel selector - only show for majors that have sub-channels */}
-          {showSubChannelField && subChannelOptions && (
+          {/* Dynamic Sub-Channel selector */}
+          {formData.major && majorHasSubChannels && (
             <div className="space-y-2">
               <label htmlFor="subChannel" className="block text-sm font-medium text-gray-700">
                 {formData.major} Concentration <span className="text-red-500">*</span>
               </label>
-              <select
-                id="subChannel"
-                value={formData.subChannel}
-                onChange={handleChange('subChannel')}
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select your concentration</option>
-                {subChannelOptions.map(subChannel => (
-                  <option key={subChannel} value={subChannel}>{subChannel}</option>
-                ))}
-              </select>
+              {subChannelsLoading ? (
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm items-center text-gray-500">
+                  Loading concentrations...
+                </div>
+              ) : subChannels.length > 0 ? (
+                <select
+                  id="subChannel"
+                  value={formData.subChannel}
+                  onChange={handleChange('subChannel')}
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select your concentration</option>
+                  {subChannels.map(subChannel => (
+                    <option key={subChannel} value={subChannel}>{subChannel}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm items-center text-gray-500">
+                  No concentrations available yet
+                </div>
+              )}
               <p className="text-xs text-gray-500">You can change this later in your profile</p>
             </div>
           )}

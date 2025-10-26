@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Message, MessageTag, getSubChannelsForMajor, hasSubChannels } from '@/types';
+import { Message, MessageTag } from '@/types';
 import toast from 'react-hot-toast';
 import { postMessage } from './ChannelService';
 import { TagSelector } from './TagSelector';
+import { useSubChannels } from '@/hooks/useSubChannels';
 
 interface MessageComposerProps {
   channelId: string;
@@ -28,6 +29,9 @@ export function MessageComposer({
   const [selectedSubChannel, setSelectedSubChannel] = useState<string>('');
   const [isPosting, setIsPosting] = useState(false);
 
+  // Fetch sub-channels dynamically
+  const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
+
   const handleTagToggle = (tag: MessageTag) => {
     setSelectedTags(prev =>
       prev.includes(tag)
@@ -42,8 +46,6 @@ export function MessageComposer({
       return;
     }
 
-    console.log('Posting message with subChannel:', selectedSubChannel);
-
     setIsPosting(true);
     try {
       const newMessage = await postMessage(
@@ -53,8 +55,6 @@ export function MessageComposer({
         selectedTags,
         selectedSubChannel || undefined
       );
-
-      console.log('Message posted:', newMessage);
 
       onMessagePosted(newMessage);
       setContent('');
@@ -79,33 +79,44 @@ export function MessageComposer({
     );
   }
 
-  const subChannels = hasSubChannels(channelName) ? getSubChannelsForMajor(channelName) : null;
-
   return (
     <div className="bg-white border-t md:border md:rounded-lg md:shadow-lg p-4">
       <form onSubmit={handleSubmit} className="space-y-3">
 
-        {/* Sub-Channel Selector for Admin - OPTIONAL */}
-        {subChannels && (
+        {/* Dynamic Sub-Channel Selector for Admin - OPTIONAL */}
+        {majorHasSubChannels && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Concentration <span className="text-gray-500 text-xs">(Optional - leave blank for all students)</span>
             </label>
-            <select
-              value={selectedSubChannel}
-              onChange={(e) => setSelectedSubChannel(e.target.value)}
-              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All {channelName} students</option>
-              {subChannels.map((subChannel) => (
-                <option key={subChannel} value={subChannel}>
-                  {subChannel} only
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Select a concentration to target specific students, or leave as &#34; for everyone
-            </p>
+            {subChannelsLoading ? (
+              <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
+                Loading concentrations...
+              </div>
+            ) : subChannels.length > 0 ? (
+              <>
+                <select
+                  value={selectedSubChannel}
+                  onChange={(e) => setSelectedSubChannel(e.target.value)}
+                  className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isPosting}
+                >
+                  <option value="">All {channelName} students</option>
+                  {subChannels.map((subChannel) => (
+                    <option key={subChannel} value={subChannel}>
+                      {subChannel} only
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Select a concentration to target specific students, or leave as "All" for everyone
+                </p>
+              </>
+            ) : (
+              <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
+                No concentrations configured yet
+              </div>
+            )}
           </div>
         )}
 

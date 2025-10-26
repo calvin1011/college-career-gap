@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { updateUserProfileAndMajor } from '@/components/channels/ChannelService';
 import Image from 'next/image';
 import { User as UserIcon, AlertTriangle } from 'lucide-react';
+import { useSubChannels } from '@/hooks/useSubChannels';
 
 export default function ProfileSetupPage() {
   const { user, loading: authLoading, handleDeleteAccount } = useAuth();
@@ -20,6 +21,7 @@ export default function ProfileSetupPage() {
   const [formData, setFormData] = useState({
     displayName: '',
     major: '',
+    subChannel: '',
     graduationYear: '',
     university: '',
   });
@@ -28,11 +30,15 @@ export default function ProfileSetupPage() {
   const [loading, setLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Fetch sub-channels dynamically based on selected major
+  const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(formData.major);
+
   useEffect(() => {
     if (user) {
       setFormData({
         displayName: user.displayName || '',
         major: user.major || '',
+        subChannel: user.subChannel || '',
         graduationYear: user.profile?.graduationYear?.toString() || '',
         university: user.profile?.university || '',
       });
@@ -59,6 +65,12 @@ export default function ProfileSetupPage() {
       return;
     }
 
+    // Validate sub-channel if major has sub-channels
+    if (majorHasSubChannels && subChannels.length > 0 && !formData.subChannel) {
+      toast.error('Please select a concentration for your major.');
+      return;
+    }
+
     setLoading(true);
     try {
       const newChannel = await updateUserProfileAndMajor(user.uid, formData, profilePicFile);
@@ -76,7 +88,14 @@ export default function ProfileSetupPage() {
   };
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    const newValue = e.target.value;
+
+    // If major changes, reset sub-channel
+    if (field === 'major') {
+      setFormData(prev => ({ ...prev, [field]: newValue, subChannel: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: newValue }));
+    }
   };
 
   const onDelete = async () => {
@@ -169,6 +188,42 @@ export default function ProfileSetupPage() {
               ))}
             </select>
           </div>
+
+          {/* Dynamic Sub-Channel/Concentration Selector */}
+          {formData.major && majorHasSubChannels && (
+            <div>
+              <label htmlFor="subChannel" className="block text-sm font-medium text-gray-700 mb-2">
+                {formData.major} Concentration <span className="text-red-500">*</span>
+              </label>
+              {subChannelsLoading ? (
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm items-center text-gray-500">
+                  Loading concentrations...
+                </div>
+              ) : subChannels.length > 0 ? (
+                <>
+                  <select
+                    id="subChannel"
+                    value={formData.subChannel}
+                    onChange={handleChange('subChannel')}
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select your concentration</option>
+                    {subChannels.map(subChannel => (
+                      <option key={subChannel} value={subChannel}>{subChannel}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    This determines which resources you'll see in your major channel
+                  </p>
+                </>
+              ) : (
+                <div className="flex h-10 w-full rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm items-center text-yellow-700">
+                  No concentrations available yet - contact your professor
+                </div>
+              )}
+            </div>
+          )}
 
           <Input
             type="number"
