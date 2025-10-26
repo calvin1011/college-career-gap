@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Message, MessageTag, hasSubChannels, getSubChannelsForMajor } from '@/types';
+import { Message, MessageTag } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { TagSelector } from './TagSelector';
 import toast from 'react-hot-toast';
+import { useSubChannels } from '@/hooks/useSubChannels';
 
 interface EditMessageModalProps {
   message: Message;
@@ -21,9 +22,8 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  // Check if this channel has sub-channels
-  const showSubChannelField = hasSubChannels(channelName);
-  const subChannelOptions = showSubChannelField ? getSubChannelsForMajor(channelName) : null;
+  // Fetch sub-channels dynamically
+  const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
 
   const handleTagToggle = (tag: MessageTag) => {
     setSelectedTags(prev =>
@@ -67,27 +67,40 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
         <h2 className="text-xl font-bold mb-4">Edit Message</h2>
 
         <div className="space-y-4">
-          {/* Sub-Channel Selector */}
-          {showSubChannelField && subChannelOptions && (
+          {/* Dynamic Sub-Channel Selector */}
+          {majorHasSubChannels && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Concentration <span className="text-gray-500 text-xs">(Optional - leave blank for all students)</span>
               </label>
-              <select
-                value={selectedSubChannel}
-                onChange={(e) => setSelectedSubChannel(e.target.value)}
-                className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All {channelName} students</option>
-                {subChannelOptions.map((subChannel) => (
-                  <option key={subChannel} value={subChannel}>
-                    {subChannel} only
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Change which concentration sees this message
-              </p>
+              {subChannelsLoading ? (
+                <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
+                  Loading concentrations...
+                </div>
+              ) : subChannels.length > 0 ? (
+                <>
+                  <select
+                    value={selectedSubChannel}
+                    onChange={(e) => setSelectedSubChannel(e.target.value)}
+                    className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isSaving}
+                  >
+                    <option value="">All {channelName} students</option>
+                    {subChannels.map((subChannel) => (
+                      <option key={subChannel} value={subChannel}>
+                        {subChannel} only
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Change which concentration sees this message
+                  </p>
+                </>
+              ) : (
+                <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
+                  No concentrations configured yet
+                </div>
+              )}
             </div>
           )}
 
@@ -101,6 +114,7 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={6}
+              disabled={isSaving}
             />
           </div>
 
@@ -112,7 +126,7 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
         </div>
 
         <div className="flex justify-end space-x-3 mt-6">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
           <Button onClick={handleSave} loading={isSaving}>

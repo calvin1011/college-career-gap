@@ -1,4 +1,6 @@
 import { Timestamp, FieldValue } from 'firebase/firestore';
+import { db } from '@/services/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 
 export interface User {
   uid: string;
@@ -33,7 +35,7 @@ export interface Channel {
   inviteCode: string;
   qrCodeData?: string;
   parentChannel?: string;
-  subChannels?: string[];
+  subChannels?: string[]; // Now dynamically managed by admins
   settings: {
     allowReactions: boolean;
     maxMessageLength: number;
@@ -143,46 +145,57 @@ export const SUPPORTED_MAJORS = [
 
 export type Major = typeof SUPPORTED_MAJORS[number];
 
-// Business sub-channels from your list
-export const BUSINESS_SUBCHANNELS = [
-  'Marketing',
-  'Management',
-  'Finance',
-  'Accounting',
-  'Health Care Admin',
-  'Agri Business',
-  'Project Management',
-  'Hospitality'
-] as const;
+// REMOVED: Hardcoded sub-channels - now dynamic from Firestore
+// Sub-channels are now stored in the Channel document's subChannels array
 
-export type BusinessSubChannel = typeof BUSINESS_SUBCHANNELS[number];
+/**
+ * Checks if a major has sub-channels configured.
+ * This now queries Firestore instead of using hardcoded data.
+ */
+export async function hasSubChannels(major: string): Promise<boolean> {
+  try {
+    const slug = major.toLowerCase().replace(/\s/g, '-');
+    const channelRef = doc(db, 'channels', slug);
+    const channelDoc = await getDoc(channelRef);
 
-// Computer Science sub-channels
-export const CS_SUBCHANNELS = [
-  'Software Engineering',
-  'Data Science',
-  'Cybersecurity',
-  'AI/ML',
-  'Web Development',
-  'Game Development'
-] as const;
+    if (!channelDoc.exists()) return false;
 
-export type CSSubChannel = typeof CS_SUBCHANNELS[number];
-
-// Configuration for sub-channels by major
-export const SUB_CHANNEL_CONFIG: Record<string, readonly string[]> = {
-  'Business': BUSINESS_SUBCHANNELS,
-  'Computer Science': CS_SUBCHANNELS
-} as const;
-
-// Helper to check if a major has sub-channels
-export function hasSubChannels(major: string): boolean {
-  return major in SUB_CHANNEL_CONFIG;
+    const subChannels = channelDoc.data()?.subChannels || [];
+    return subChannels.length > 0;
+  } catch (error) {
+    console.error('Error checking sub-channels:', error);
+    return false;
+  }
 }
 
-// Helper to get sub-channels for a major
-export function getSubChannelsForMajor(major: string): readonly string[] | undefined {
-  return SUB_CHANNEL_CONFIG[major];
+/**
+ * Gets sub-channels for a major from Firestore.
+ * Returns an empty array if none exist.
+ */
+export async function getSubChannelsForMajor(major: string): Promise<string[]> {
+  try {
+    const slug = major.toLowerCase().replace(/\s/g, '-');
+    const channelRef = doc(db, 'channels', slug);
+    const channelDoc = await getDoc(channelRef);
+
+    if (!channelDoc.exists()) return [];
+
+    return channelDoc.data()?.subChannels || [];
+  } catch (error) {
+    console.error('Error fetching sub-channels:', error);
+    return [];
+  }
+}
+
+/**
+ * Synchronous version that checks if a major string matches known majors with sub-channels.
+ * Use this for initial UI rendering, then fetch actual sub-channels asynchronously.
+ */
+export function hasSubChannelsSync(major: string): boolean {
+  // Based on your current setup, Business and Computer Science have sub-channels
+  // This is a temporary helper until all components are updated to use async
+  const majorsWithSubChannels = ['Business', 'Computer Science'];
+  return majorsWithSubChannels.includes(major);
 }
 
 export const DEFAULT_REACTIONS = ['👍', '❤️', '🔥', '💡', '🎯', '📖', '🚀'] as const;

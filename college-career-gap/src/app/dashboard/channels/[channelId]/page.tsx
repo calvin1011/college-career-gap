@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
-import { Channel, Message, MessageTag, hasSubChannels, getSubChannelsForMajor } from '@/types';
+import { Channel, Message, MessageTag, hasSubChannels } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock, MessageCircle, Sparkles, User, Pin, Trash2, Edit, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -22,6 +22,7 @@ import { FieldValue, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import { requestNotificationPermission } from '@/services/firebase/notifications';
 import { TagBadge } from '@/components/channels/TagBadge';
+import { useSubChannels } from '@/hooks/useSubChannels';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -34,6 +35,7 @@ export default function ChannelPage() {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const { subChannels, hasSubChannels: majorHasSubChannels } = useSubChannels(channel?.name);
 
   useEffect(() => {
     const fetchChannel = async () => {
@@ -105,7 +107,7 @@ export default function ChannelPage() {
     setModerationLoading(message.id);
     try {
       await togglePinMessage(message.id, message.isPinned);
-    } catch (error) {
+    } catch {
       // Error toast is handled in the service
     } finally {
       setModerationLoading(null);
@@ -117,7 +119,7 @@ export default function ChannelPage() {
       setModerationLoading(message.id);
       try {
         await deleteMessage(channel!.id, message.id);
-      } catch (error) {
+      } catch {
         // Error toast is handled in the service
       } finally {
         setModerationLoading(null);
@@ -223,7 +225,7 @@ export default function ChannelPage() {
         </div>
 
         {/* Sub-Channel Dropdown - Now inside header */}
-        {channel && hasSubChannels(channel.name) && (
+        {channel && majorHasSubChannels && subChannels.length > 0 && (
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
             <label htmlFor="subChannel" className="text-xs md:text-sm font-medium text-gray-700">
               Concentration:
@@ -248,7 +250,7 @@ export default function ChannelPage() {
               className="ml-4 flex-1 max-w-xs h-8 rounded-md border border-gray-300 bg-white px-3 py-1 text-xs md:text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All {channel.name} Resources</option>
-              {getSubChannelsForMajor(channel.name)?.map((subChannel) => (
+              {subChannels.map((subChannel) => (
                 <option key={subChannel} value={subChannel}>{subChannel}</option>
               ))}
             </select>
