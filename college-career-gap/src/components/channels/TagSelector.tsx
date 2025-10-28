@@ -16,6 +16,10 @@ export function TagSelector({ selectedTags, onTagToggle }: TagSelectorProps) {
     }
 
     switch(tag) {
+      case 'graduate':
+        return 'bg-purple-100 text-purple-700 border-purple-400'
+      case 'undergrad':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-400';
       case 'podcast':
         return 'bg-pink-100 text-pink-700 border-pink-400';
       case 'advice-tip':
