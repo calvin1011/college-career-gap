@@ -76,6 +76,8 @@ export interface LinkPreview {
 }
 
 export const MESSAGE_TAGS = [
+  'graduate',
+  'undergrad',
   'podcast',
   'advice-tip',
   'internship',
@@ -85,6 +87,18 @@ export const MESSAGE_TAGS = [
 export type MessageTag = typeof MESSAGE_TAGS[number];
 
 export const TAG_CONFIG: Record<MessageTag, { label: string; color: string; bgColor: string; borderColor: string }> = {
+  'graduate':{
+    label: 'Graduate',
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-100',
+    borderColor: 'border-purple-400',
+  },
+  'undergrad':{
+    label: 'Under-Grad',
+    color: 'text-yellow-700',
+    bgColor: 'bg-yellow-100',
+    borderColor: 'border-yellow-300'
+  },
   'podcast': {
     label: '🎙️ Podcast',
     color: 'text-pink-700',
@@ -135,6 +149,8 @@ export interface ReactionMap {
 }
 
 export const SUPPORTED_MAJORS = [
+  'Mechanical Engineering',
+  'School of Education',
   'Business',
   'Computer Science',
   'Biology',
