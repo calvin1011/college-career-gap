@@ -1,48 +1,47 @@
-
-const functions = require("firebase-functions");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-// function triggers whenever a new document is created in the 'messages' collection
-exports.sendNewMessageNotification = functions.firestore
-  .document("messages/{messageId}")
-  .onCreate(async (snap, context) => {
-    const message = snap.data();
+exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", async (event) => {
+    // The document data is now available on event.data.data()
+    const message = event.data.data();
     const channelId = message.channelId;
+    const authorId = message.authorId;
 
-    // Get the channel details to find its members
     const channelDoc = await admin.firestore().collection("channels").doc(channelId).get();
     if (!channelDoc.exists) {
-      return console.log("Channel not found.");
+        return console.log(`Channel ${channelId} not found.`);
     }
-    const memberIds = channelDoc.data().members;
-
-    // Get the notification tokens for all members
+    const channelData = channelDoc.data();
+    const memberIds = channelData.members || [];
     const tokens = [];
-    for (const userId of memberIds) {
-      // Don't send a notification to the person who posted the message
-      if (userId === message.authorId) continue;
 
-      const userDoc = await admin.firestore().collection("users").doc(userId).get();
-      if (userDoc.exists && userDoc.data().notificationToken) {
-        tokens.push(userDoc.data().notificationToken);
-      }
+    for (const userId of memberIds) {
+        if (userId === authorId) {
+            continue;
+        }
+
+        const userDoc = await admin.firestore().collection("users").doc(userId).get();
+        if (userDoc.exists && userDoc.data().notificationToken) {
+            tokens.push(userDoc.data().notificationToken);
+        }
     }
 
     if (tokens.length === 0) {
-      return console.log("No users to notify.");
+        return console.log("No users with notification tokens found.");
     }
 
-    // Define the notification payload
     const payload = {
-      notification: {
-        title: `New Resource in ${channelDoc.data().name}`,
-        body: message.content.substring(0, 100), // Truncate for preview
-        click_action: `https://your-website-url.com/dashboard/channels/${channelId}`,
-      },
+        notification: {
+            title: `New Resource in ${channelData.name}`,
+            body: message.content.substring(0, 100) + (message.content.length > 100 ? '...' : ''),
+            icon: '/favicon.ico',
+        },
+        data: {
+            url: `/dashboard/channels/${channelId}`
+        }
     };
 
-    // Send the notification to all collected tokens
     return admin.messaging().sendToDevice(tokens, payload);
-  });
+});
