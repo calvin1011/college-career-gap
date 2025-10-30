@@ -3,7 +3,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 
-// Initialize services
+// Initialize the Admin SDK
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
@@ -13,7 +13,6 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
     const channelId = message.channelId;
     const authorId = message.authorId;
 
-    // 'db' instance for Firestore operations
     const channelDoc = await db.collection("channels").doc(channelId).get();
     if (!channelDoc.exists) {
         return console.log(`Channel ${channelId} not found.`);
@@ -22,12 +21,13 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
     const memberIds = channelData.members || [];
     const tokens = [];
 
+    // Gather notification tokens from all members of the channel
     for (const userId of memberIds) {
+        // Don't send a notification to the person who sent the message
         if (userId === authorId) {
-            continue; // Don't send a notification to the author
+            continue;
         }
 
-        // 'db' instance for Firestore operations
         const userDoc = await db.collection("users").doc(userId).get();
         if (userDoc.exists && userDoc.data().notificationToken) {
             tokens.push(userDoc.data().notificationToken);
@@ -35,10 +35,12 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
     }
 
     if (tokens.length === 0) {
-        return console.log("No users with notification tokens found to send to.");
+        return console.log("No users with notification tokens found.");
     }
 
-    const payload = {
+    // Construct the multicast message payload
+    const multicastPayload = {
+        tokens: tokens,
         notification: {
             title: `New Resource in ${channelData.name}`,
             body: message.content.substring(0, 100) + (message.content.length > 100 ? '...' : ''),
@@ -49,10 +51,6 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
         }
     };
 
-    // Use the new 'messaging' instance and the correct 'sendMulticast' method
-    return messaging.sendMulticast({
-        tokens,
-        notification: payload.notification,
-        data: payload.data,
-    });
+    console.log(`Sending notification to ${tokens.length} device(s).`);
+    return messaging.sendEachForMulticast(multicastPayload);
 });
