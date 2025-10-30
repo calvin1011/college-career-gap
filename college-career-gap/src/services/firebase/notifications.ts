@@ -35,8 +35,11 @@ export const requestNotificationPermission = async (userId: string) => {
         });
         console.log('Service Worker registered:', registration);
 
-        // Wait for service worker to be ready
-        await navigator.serviceWorker.ready;
+      // Get the device token
+      const currentToken = await getToken(messaging, {
+        vapidKey: "BLg73B7GDwucU-ERuh1QN8-1dinGhXkdPMOEUJy3Yjf-AN2t1OP0oYHcHD_OAd2ujy5-GLU2SPn1a_QvJ6hnnQI",
+        serviceWorkerRegistration: registration
+      });
 
         // Get the device token with increased timeout for mobile
         const currentToken = await getToken(messaging, {
