@@ -43,5 +43,9 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
         }
     };
 
-    return admin.messaging().sendToDevice(tokens, payload);
+    return admin.messaging().sendMulticast({
+        tokens,
+        notification: payload.notification,
+        data: payload.data,
+    });
 });
