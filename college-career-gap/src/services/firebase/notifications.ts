@@ -1,48 +1,33 @@
 import { getMessaging, getToken } from "firebase/messaging";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "./config";
 import app from "./config";
 
 export const requestNotificationPermission = async (userId: string) => {
   try {
-    // Check if we're in a browser environment
-    if (typeof window === 'undefined') {
-      console.log('Not in browser environment');
-      return;
-    }
-
-    // Check if service workers are supported
-    if (!('serviceWorker' in navigator)) {
-      console.log('Service workers not supported');
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      console.log('Push notifications not supported in this environment.');
       return;
     }
 
     const messaging = getMessaging(app);
-
-    // Request permission
     const permission = await Notification.requestPermission();
 
     if (permission === "granted") {
       console.log("Notification permission granted.");
-
-      // Register service worker first
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('Service Worker registered:', registration);
-
-      // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
 
-      // Get the device token
       const currentToken = await getToken(messaging, {
         vapidKey: "BLg73B7GDwucU-ERuh1QN8-1dinGhXkdPMOEUJy3Yjf-AN2t1OP0oYHcHD_OAd2ujy5-GLU2SPn1a_QvJ6hnnQI",
         serviceWorkerRegistration: registration
       });
 
       if (currentToken) {
-        // Save the token to the user's profile in Firestore
+        // Add the new token to the user's array of tokens
         const userDocRef = doc(db, "users", userId);
         await updateDoc(userDocRef, {
-          notificationToken: currentToken,
+          notificationTokens: arrayUnion(currentToken),
         });
         console.log("Notification token saved successfully:", currentToken);
         return currentToken;
@@ -56,4 +41,35 @@ export const requestNotificationPermission = async (userId: string) => {
     console.error("An error occurred while setting up notifications:", error);
     throw error;
   }
+};
+
+// function to REMOVE a token when a user turns off notifications
+export const disableNotificationsForDevice = async (userId: string) => {
+    try {
+        if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+            return;
+        }
+
+        const messaging = getMessaging(app);
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) return;
+
+        // Get the token for THIS specific device/browser
+        const currentToken = await getToken(messaging, {
+            vapidKey: "BLg73B7GDwucU-ERuh1QN8-1dinGhXkdPMOEUJy3Yjf-AN2t1OP0oYHcHD_OAd2ujy5-GLU2SPn1a_QvJ6hnnQI",
+            serviceWorkerRegistration: registration
+        });
+
+        if (currentToken) {
+            // Remove this specific token from the user's array
+            const userDocRef = doc(db, "users", userId);
+            await updateDoc(userDocRef, {
+                notificationTokens: arrayRemove(currentToken),
+            });
+            console.log("Notification token removed successfully.");
+        }
+    } catch (error) {
+        console.error("Error disabling notifications:", error);
+        throw error;
+    }
 };

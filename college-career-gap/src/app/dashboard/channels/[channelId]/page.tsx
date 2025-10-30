@@ -20,7 +20,7 @@ import { EditMessageModal } from '@/components/channels/EditMessageModal';
 import { InviteModal } from '@/components/channels/InviteModal';
 import { FieldValue, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
-import { requestNotificationPermission } from '@/services/firebase/notifications';
+import { requestNotificationPermission, disableNotificationsForDevice } from '@/services/firebase/notifications';
 import { TagBadge } from '@/components/channels/TagBadge';
 import { useSubChannels } from '@/hooks/useSubChannels';
 
@@ -54,7 +54,7 @@ export default function ChannelPage() {
 
   useEffect(() => {
     if (user) {
-      setNotificationsEnabled(!!user.notificationToken);
+      setNotificationsEnabled(!!user.notificationTokens);
     }
   }, [user]);
 
@@ -86,32 +86,19 @@ export default function ChannelPage() {
 
     try {
       if (notificationsEnabled) {
-        // Disable notifications
-        const userDocRef = doc(db, "users", user.uid);
-        await updateDoc(userDocRef, {
-          notificationToken: null,
-        });
+        // Use the new function to remove the token for THIS device
+        await disableNotificationsForDevice(user.uid);
         setNotificationsEnabled(false);
-        toast.success('Notifications disabled');
+        toast.success('Notifications disabled for this device');
       } else {
-        // Enable notifications with proper error handling
-        try {
-          await requestNotificationPermission(user.uid);
-          setNotificationsEnabled(true);
-          toast.success('Notifications enabled');
-        } catch (permError) {
-          console.error('Permission error:', permError);
-          // Check if it's a permission denial or other error
-          if (permError instanceof Error && permError.message.includes('permission')) {
-            toast.error('Please enable notifications in your browser settings');
-          } else {
-            toast.error('Failed to enable notifications. Please try again.');
-          }
-        }
+        // This part remains the same
+        await requestNotificationPermission(user.uid);
+        setNotificationsEnabled(true);
+        toast.success('Notifications enabled for this device');
       }
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      toast.error('Failed to update notification settings');
+      toast.error('Failed to update notification settings. Please try again.');
     }
   };
 

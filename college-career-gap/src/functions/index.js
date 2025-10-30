@@ -19,7 +19,7 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
     }
     const channelData = channelDoc.data();
     const memberIds = channelData.members || [];
-    const tokens = [];
+    let allTokens = [];
 
     // Gather notification tokens from all members of the channel
     for (const userId of memberIds) {
@@ -29,18 +29,21 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
         }
 
         const userDoc = await db.collection("users").doc(userId).get();
-        if (userDoc.exists && userDoc.data().notificationToken) {
-            tokens.push(userDoc.data().notificationToken);
+        if (userDoc.exists() && Array.isArray(userDoc.data().notificationTokens)) {
+            allTokens.push(...userDoc.data().notificationTokens);
         }
     }
 
-    if (tokens.length === 0) {
+    // Remove any duplicate tokens
+    const uniqueTokens = [...new Set(allTokens)];
+
+    if (uniqueTokens.length === 0) {
         return console.log("No users with notification tokens found.");
     }
 
     // Construct the multicast message payload
     const multicastPayload = {
-        tokens: tokens,
+        tokens: uniqueTokens,
         notification: {
             title: `New Resource in ${channelData.name}`,
             body: message.content.substring(0, 100) + (message.content.length > 100 ? '...' : ''),
@@ -51,6 +54,6 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
         }
     };
 
-    console.log(`Sending notification to ${tokens.length} device(s).`);
+    console.log(`Sending notification to ${uniqueTokens.length} device(s).`);
     return messaging.sendEachForMulticast(multicastPayload);
 });
