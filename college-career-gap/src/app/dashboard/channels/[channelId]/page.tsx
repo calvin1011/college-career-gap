@@ -216,9 +216,9 @@ export default function ChannelPage() {
                 title={notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
               >
                 {notificationsEnabled ? (
-                  <><Bell className="w-3 h-3" /><span className="hidden sm:inline">Notifications On</span></>
+                  <><Bell className="w-3 h-3" /><span className="hidden sm:inline">On</span></>
                 ) : (
-                  <><BellOff className="w-3 h-3" /><span className="hidden sm:inline">Notifications Off</span></>
+                  <><BellOff className="w-3 h-3" /><span className="hidden sm:inline">Off</span></>
                 )}
               </button>
             )}

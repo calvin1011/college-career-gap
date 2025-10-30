@@ -1,15 +1,20 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getMessaging } = require("firebase-admin/messaging");
 
-admin.initializeApp();
+// Initialize services
+initializeApp();
+const db = getFirestore();
+const messaging = getMessaging();
 
 exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", async (event) => {
-    // The document data is now available on event.data.data()
     const message = event.data.data();
     const channelId = message.channelId;
     const authorId = message.authorId;
 
-    const channelDoc = await admin.firestore().collection("channels").doc(channelId).get();
+    // 'db' instance for Firestore operations
+    const channelDoc = await db.collection("channels").doc(channelId).get();
     if (!channelDoc.exists) {
         return console.log(`Channel ${channelId} not found.`);
     }
@@ -19,17 +24,18 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
 
     for (const userId of memberIds) {
         if (userId === authorId) {
-            continue;
+            continue; // Don't send a notification to the author
         }
 
-        const userDoc = await admin.firestore().collection("users").doc(userId).get();
+        // 'db' instance for Firestore operations
+        const userDoc = await db.collection("users").doc(userId).get();
         if (userDoc.exists && userDoc.data().notificationToken) {
             tokens.push(userDoc.data().notificationToken);
         }
     }
 
     if (tokens.length === 0) {
-        return console.log("No users with notification tokens found.");
+        return console.log("No users with notification tokens found to send to.");
     }
 
     const payload = {
@@ -43,7 +49,8 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
         }
     };
 
-    return admin.messaging().sendMulticast({
+    // Use the new 'messaging' instance and the correct 'sendMulticast' method
+    return messaging.sendMulticast({
         tokens,
         notification: payload.notification,
         data: payload.data,

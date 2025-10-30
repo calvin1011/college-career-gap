@@ -7,6 +7,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { SignUpForm } from '@/components/auth/SignUpForm';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
+import Link from "next/link";
 //import CareerImage from '/public/career1.jpeg';
 
 export default function HomePage() {
@@ -130,17 +131,23 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <h3 className="text-lg font-semibold">Adams State Resource Hub</h3>
+              <h3 className="text-lg font-semibold">Resource Hub</h3>
               <p className="text-gray-400">Empowering student career success</p>
             </div>
             <div className="flex space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">About</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a>
+              <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+                About
+              </Link>
+              <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
+                Privacy
+              </Link>
+              <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
+                Contact
+              </Link>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-4 text-center text-gray-400">
-            <p>&copy; 2025 Adams State Resource Hub. Built for student success.</p>
+            <p>&copy; 2025 Resource Hub. Built for student success.</p>
           </div>
         </div>
       </footer>

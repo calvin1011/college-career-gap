@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Adams State Resource Hub',
-  description: 'Career resources and guidance for Adams State University students',
+  description: 'Career resources and guidance for University students',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
