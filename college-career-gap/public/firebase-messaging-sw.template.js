@@ -1,16 +1,15 @@
-// Import Firebase scripts
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js");
 
-// Firebase configuration
+// Firebase configuration - will be replaced at build time
 const firebaseConfig = {
-  apiKey: "AIzaSyBBvSbsh0e2Pim7a53nyOyHqClvHVkJYVo",
-  authDomain: "college-career-gap.firebaseapp.com",
-  projectId: "college-career-gap",
-  storageBucket: "college-career-gap.firebasestorage.app",
-  messagingSenderId: "730642444726",
-  appId: "1:730642444726:web:b17e5d835f6ce78cac9117",
-  measurementId: "G-YMVSR8N0KM"
+  apiKey: "__FIREBASE_API_KEY__",
+  authDomain: "__FIREBASE_AUTH_DOMAIN__",
+  projectId: "__FIREBASE_PROJECT_ID__",
+  storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+  messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+  appId: "__FIREBASE_APP_ID__",
+  measurementId: "__FIREBASE_MEASUREMENT_ID__"
 };
 
 // Initialize Firebase

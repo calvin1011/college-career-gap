@@ -38,6 +38,18 @@ yarn-error.log*
 
 serviceAccountKey-prod.json
 
+.firebaserc
+cors-config.json
+firebase.json
+serviceAccountKey.json
+package-lock.json
+
+# Functions
+src/functions/node_modules/
+src/functions/package-lock.json
+
+/public/firebase-messaging-sw.js
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
