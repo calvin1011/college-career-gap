@@ -76,6 +76,8 @@ export interface LinkPreview {
 }
 
 export const MESSAGE_TAGS = [
+  'graduate',
+  'undergrad',
   'podcast',
   'advice-tip',
   'internship',
@@ -85,6 +87,18 @@ export const MESSAGE_TAGS = [
 export type MessageTag = typeof MESSAGE_TAGS[number];
 
 export const TAG_CONFIG: Record<MessageTag, { label: string; color: string; bgColor: string; borderColor: string }> = {
+  'graduate':{
+    label: 'Graduate',
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-100',
+    borderColor: 'border-purple-400',
+  },
+  'undergrad':{
+    label: 'Undergrad',
+    color: 'text-yellow-700',
+    bgColor: 'bg-yellow-100',
+    borderColor: 'border-yellow-300'
+  },
   'podcast': {
     label: '🎙️ Podcast',
     color: 'text-pink-700',
@@ -135,6 +149,8 @@ export interface ReactionMap {
 }
 
 export const SUPPORTED_MAJORS = [
+  'Mechanical Engineering',
+  'School of Education',
   'Business',
   'Computer Science',
   'Biology',
@@ -144,9 +160,6 @@ export const SUPPORTED_MAJORS = [
 ] as const;
 
 export type Major = typeof SUPPORTED_MAJORS[number];
-
-// REMOVED: Hardcoded sub-channels - now dynamic from Firestore
-// Sub-channels are now stored in the Channel document's subChannels array
 
 /**
  * Checks if a major has sub-channels configured.

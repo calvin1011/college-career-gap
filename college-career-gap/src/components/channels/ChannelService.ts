@@ -25,6 +25,35 @@ const storage = getStorage(app);
 
 // Seed messages for each major
 const SEED_MESSAGES = {
+  'Mechanical Engineering': [
+    {
+      content: "Welcome to Mechanical Engineering! ⚙️ This is where you'll find career resources, internship opportunities, and industry insights for mechanical engineering students.",
+      type: 'text' as const,
+      isPinned: true
+    },
+    {
+      content: "Essential engineering podcasts: The Engineering Career Coach Podcast, The Engineering Commons, and Machining and Microwaves. Stay updated with industry trends!",
+      type: 'text' as const,
+      isPinned: false
+    },
+    {
+      content: "CAD software skills are crucial! Master SolidWorks, AutoCAD, or CATIA. Many companies offer student licenses - take advantage of them!",
+      type: 'text' as const,
+      isPinned: false
+    }
+  ],
+  'School of Education': [
+    {
+      content: "Welcome to Education! 📚 Discover teaching resources, certification guidance, and classroom management strategies.",
+      type: 'text' as const,
+      isPinned: true
+    },
+    {
+      content: "Teacher preparation is key! Complete your student teaching hours early and build relationships with mentor teachers.",
+      type: 'text' as const,
+      isPinned: false
+    }
+  ],
   'Business': [
     {
       content: "Welcome to the Business channel! 🏢 This is where you'll find career resources, internship opportunities, and networking tips for business students.",

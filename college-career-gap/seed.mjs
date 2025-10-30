@@ -18,18 +18,29 @@ admin.initializeApp({
 const db = admin.firestore();
 console.log(`Firebase Admin SDK initialized for project: ${projectId}`);
 
-// Data Definitions (from project files)
 const SUPPORTED_MAJORS = [
+  'Mechanical Engineering',
+  'School of Education',
   'Business',
   'Computer Science',
   'Biology',
   'Chemistry',
   'Psychology',
   'Kinesiology'
-]; //
+];
 
 // SEED MESSAGES (from ChannelService.ts)
 const SEED_MESSAGES = {
+    'Mechanical Engineering': [
+        { content: "Welcome to the Business channel! ⚙️ This is where you'll find career resources, internship opportunities, and networking tips for business students.", type: 'text', isPinned: true },
+        { content: "Check out these essential business podcasts: Harvard Business Review IdeaCast, Masters in Business by Bloomberg, and The McKinsey Podcast. Great for staying current with industry trends!", type: 'text', isPinned: false },
+        { content: "LinkedIn Learning has excellent courses on Excel, PowerPoint, and business analytics. Your .edu email gives you free access!", type: 'text', isPinned: false }
+    ],
+    'School of Education': [
+        { content: "Welcome to the Business channel! 📚 This is where you'll find career resources, internship opportunities, and networking tips for business students.", type: 'text', isPinned: true },
+        { content: "Check out these essential business podcasts: Harvard Business Review IdeaCast, Masters in Business by Bloomberg, and The McKinsey Podcast. Great for staying current with industry trends!", type: 'text', isPinned: false },
+        { content: "LinkedIn Learning has excellent courses on Excel, PowerPoint, and business analytics. Your .edu email gives you free access!", type: 'text', isPinned: false }
+    ],
     'Business': [
         { content: "Welcome to the Business channel! 🏢 This is where you'll find career resources, internship opportunities, and networking tips for business students.", type: 'text', isPinned: true },
         { content: "Check out these essential business podcasts: Harvard Business Review IdeaCast, Masters in Business by Bloomberg, and The McKinsey Podcast. Great for staying current with industry trends!", type: 'text', isPinned: false },
