@@ -86,6 +86,7 @@ export default function ChannelPage() {
 
     try {
       if (notificationsEnabled) {
+        // Disable notifications
         const userDocRef = doc(db, "users", user.uid);
         await updateDoc(userDocRef, {
           notificationToken: null,
@@ -93,13 +94,24 @@ export default function ChannelPage() {
         setNotificationsEnabled(false);
         toast.success('Notifications disabled');
       } else {
-        await requestNotificationPermission(user.uid);
-        setNotificationsEnabled(true);
-        toast.success('Notifications enabled');
+        // Enable notifications with proper error handling
+        try {
+          await requestNotificationPermission(user.uid);
+          setNotificationsEnabled(true);
+          toast.success('Notifications enabled');
+        } catch (permError) {
+          console.error('Permission error:', permError);
+          // Check if it's a permission denial or other error
+          if (permError instanceof Error && permError.message.includes('permission')) {
+            toast.error('Please enable notifications in your browser settings');
+          } else {
+            toast.error('Failed to enable notifications. Please try again.');
+          }
+        }
       }
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      toast.error('Failed to update notifications');
+      toast.error('Failed to update notification settings');
     }
   };
 

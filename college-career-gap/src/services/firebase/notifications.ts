@@ -7,14 +7,17 @@ export const requestNotificationPermission = async (userId: string) => {
   try {
     // Check if we're in a browser environment
     if (typeof window === 'undefined') {
-      console.log('Not in browser environment');
-      return;
+      throw new Error('Not in browser environment');
     }
 
     // Check if service workers are supported
     if (!('serviceWorker' in navigator)) {
-      console.log('Service workers not supported');
-      return;
+      throw new Error('Service workers not supported in this browser');
+    }
+
+    // Check if Notification API is supported
+    if (!('Notification' in window)) {
+      throw new Error('Notifications not supported in this browser');
     }
 
     const messaging = getMessaging(app);
@@ -25,32 +28,41 @@ export const requestNotificationPermission = async (userId: string) => {
     if (permission === "granted") {
       console.log("Notification permission granted.");
 
-      // Register service worker first
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('Service Worker registered:', registration);
-
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
-
-      // Get the device token
-      const currentToken = await getToken(messaging, {
-        vapidKey: "BFB7RKWcnMymTSW9OhZeYtiCbQVZZ560-lEZArc7h68b3wu89Jg70M22cBmFqVSahqvnsjsuw2WrJNSfAq7_yoU",
-        serviceWorkerRegistration: registration
-      });
-
-      if (currentToken) {
-        // Save the token to the user's profile in Firestore
-        const userDocRef = doc(db, "users", userId);
-        await updateDoc(userDocRef, {
-          notificationToken: currentToken,
+      try {
+        // Register service worker first
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/'
         });
-        console.log("Notification token saved successfully:", currentToken);
-        return currentToken;
-      } else {
-        console.log("No registration token available.");
+        console.log('Service Worker registered:', registration);
+
+        // Wait for service worker to be ready
+        await navigator.serviceWorker.ready;
+
+        // Get the device token with increased timeout for mobile
+        const currentToken = await getToken(messaging, {
+          vapidKey: "BLg73B7GDwucU-ERuh1QN8-1dinGhXkdPMOEUJy3Yjf-AN2t1OP0oYHcHD_OAd2ujy5-GLU2SPn1a_QvJ6hnnQI",
+          serviceWorkerRegistration: registration
+        });
+
+        if (currentToken) {
+          // Save the token to the user's profile in Firestore
+          const userDocRef = doc(db, "users", userId);
+          await updateDoc(userDocRef, {
+            notificationToken: currentToken,
+          });
+          console.log("Notification token saved successfully:", currentToken);
+          return currentToken;
+        } else {
+          throw new Error("No registration token available. Request permission to generate one.");
+        }
+      } catch (swError) {
+        console.error("Service worker or token error:", swError);
+        throw new Error("Failed to setup notifications. Please check your browser settings.");
       }
+    } else if (permission === "denied") {
+      throw new Error("Notification permission denied. Please enable notifications in your browser settings.");
     } else {
-      console.log("Notification permission denied.");
+      throw new Error("Notification permission dismissed.");
     }
   } catch (error) {
     console.error("An error occurred while setting up notifications:", error);

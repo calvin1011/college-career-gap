@@ -33,6 +33,16 @@ export default function ProfileSetupPage() {
   // Fetch sub-channels dynamically based on selected major
   const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(formData.major);
 
+  // Scroll to bottom when sub-channels appear
+  useEffect(() => {
+    if (majorHasSubChannels && subChannels.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
+    }
+  }, [majorHasSubChannels, subChannels.length]);
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -123,7 +133,7 @@ export default function ProfileSetupPage() {
         <h2 className="text-2xl font-bold text-center text-gray-900">Profile Settings</h2>
         <p className="text-sm text-center text-gray-600 mt-1">Manage your profile and majors</p>
       </CardHeader>
-      <CardContent className="px-6 md:px-6">
+      <CardContent className="px-6 md:px-6 pb-24 md:pb-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
             <div className="relative w-24 h-24">
@@ -233,7 +243,7 @@ export default function ProfileSetupPage() {
             placeholder="e.g., 2025"
           />
 
-          <Button type="submit" className="w-full" loading={loading}>
+          <Button type="submit" className="w-full sticky bottom-0 z-10 shadow-lg">
             Save Changes
           </Button>
         </form>

@@ -5,6 +5,8 @@ export const APP_CONFIG = {
   maxMessageLength: 2000,
   allowedReactions: ['👍', '❤️', '🔥', '💡', '🎯', '📖', '🚀'],
   supportedMajors: [
+    'Mechanical Engineering',
+    'School of Education',
     'Business',
     'Computer Science',
     'Biology',

@@ -94,7 +94,7 @@ export const TAG_CONFIG: Record<MessageTag, { label: string; color: string; bgCo
     borderColor: 'border-purple-400',
   },
   'undergrad':{
-    label: 'Under-Grad',
+    label: 'Undergrad',
     color: 'text-yellow-700',
     bgColor: 'bg-yellow-100',
     borderColor: 'border-yellow-300'
@@ -160,9 +160,6 @@ export const SUPPORTED_MAJORS = [
 ] as const;
 
 export type Major = typeof SUPPORTED_MAJORS[number];
-
-// REMOVED: Hardcoded sub-channels - now dynamic from Firestore
-// Sub-channels are now stored in the Channel document's subChannels array
 
 /**
  * Checks if a major has sub-channels configured.
