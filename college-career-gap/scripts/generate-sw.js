@@ -2,16 +2,29 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from .env.local or .env.production
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local';
+// Detect current git branch
+let currentBranch = 'unknown';
+try {
+  currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
+} catch (error) {
+  console.warn('Could not detect git branch:', error.message);
+}
+
+// Determine environment based on branch
+// main/master = production, everything else = development
+const isProductionBranch = ['main', 'master'].includes(currentBranch);
+const envFile = isProductionBranch ? '.env.production' : '.env.local';
 const envPath = path.join(__dirname, '..', envFile);
 
+console.log(`Current branch: ${currentBranch}`);
 console.log(`Loading environment from: ${envFile}`);
+
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {
@@ -65,4 +78,5 @@ fs.writeFileSync(outputPath, template);
 
 console.log(' Successfully generated firebase-messaging-sw.js');
 console.log(`   Project: ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}`);
-console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`   Branch: ${currentBranch}`);
+console.log(`   Environment: ${envFile}`);
