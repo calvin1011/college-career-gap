@@ -48,8 +48,6 @@ package-lock.json
 src/functions/node_modules/
 src/functions/package-lock.json
 
-/public/firebase-messaging-sw.js
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
