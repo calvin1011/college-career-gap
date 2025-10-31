@@ -225,3 +225,55 @@ exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) =
         summary
     };
 });
+
+exports.fixMemberCounts = onRequest(async (req, res) => {
+    console.log(" Fixing member counts...");
+
+    const channelsSnapshot = await db.collection("channels").get();
+    const batch = db.batch();
+    const results = [];
+
+    for (const channelDoc of channelsSnapshot.docs) {
+        const data = channelDoc.data();
+        const actualCount = (data.members || []).length;
+        const storedCount = data.memberCount || 0;
+
+        if (actualCount !== storedCount) {
+            console.log(`Fixing ${data.name}: ${storedCount} → ${actualCount}`);
+            batch.update(channelDoc.ref, {
+                memberCount: actualCount,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+            results.push({ channel: data.name, old: storedCount, new: actualCount });
+        }
+    }
+
+    await batch.commit();
+    res.json({ success: true, fixed: results });
+});
+
+// Auto-fix every day
+exports.reconcileMemberCounts = onSchedule("every day 03:00", async (context) => {
+    console.log(" Daily member count check...");
+
+    const channelsSnapshot = await db.collection("channels").get();
+    const batch = db.batch();
+    let fixedCount = 0;
+
+    for (const channelDoc of channelsSnapshot.docs) {
+        const data = channelDoc.data();
+        const actualCount = (data.members || []).length;
+        const storedCount = data.memberCount || 0;
+
+        if (actualCount !== storedCount) {
+            batch.update(channelDoc.ref, {
+                memberCount: actualCount,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+            fixedCount++;
+        }
+    }
+
+    if (fixedCount > 0) await batch.commit();
+    console.log(` Fixed ${fixedCount} channels`);
+});
