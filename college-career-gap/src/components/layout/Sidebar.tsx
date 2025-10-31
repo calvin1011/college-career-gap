@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, Home, School, CalendarDays, User, Users, X } from 'lucide-react';
+import {LogOut, Home, School, CalendarDays, User, Users, X, Trash2} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
@@ -159,16 +159,30 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
 
             {user?.role === 'admin' && isSuperAdmin(user.email) && (
-              <Link
-                href="/dashboard/admin/feedback"
-                className={cn(
-                  'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                  { 'bg-blue-600 text-white': pathname === '/dashboard/admin/feedback' }
-                )}
-              >
-                <ShieldCheck className="w-5 h-5 mr-3" />
-                <span>Admin Feedback</span>
-              </Link>
+              <>
+                <Link
+                  href="/dashboard/admin/feedback"
+                  className={cn(
+                    'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                    { 'bg-blue-600 text-white': pathname === '/dashboard/admin/feedback' }
+                  )}
+                >
+                  <ShieldCheck className="w-5 h-5 mr-3" />
+                  <span>Admin Feedback</span>
+                </Link>
+
+                {/* ADD THIS NEW LINK */}
+                <Link
+                  href="/dashboard/admin/cleanup-logs"
+                  className={cn(
+                    'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                    { 'bg-blue-600 text-white': pathname === '/dashboard/admin/cleanup-logs' }
+                  )}
+                >
+                  <Trash2 className="w-5 h-5 mr-3" />
+                  <span>Cleanup Logs</span>
+                </Link>
+              </>
             )}
           </nav>
         </div>

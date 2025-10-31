@@ -23,6 +23,7 @@ import { db } from '@/services/firebase/config';
 import { requestNotificationPermission, disableNotificationsForDevice } from '@/services/firebase/notifications';
 import { TagBadge } from '@/components/channels/TagBadge';
 import { useSubChannels } from '@/hooks/useSubChannels';
+import { ExpirationBadge } from '@/components/channels/ExpirationBadge';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -288,6 +289,18 @@ export default function ChannelPage() {
                 {message.subChannel && (
                   <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mb-1.5">
                     {message.subChannel}
+                  </div>
+                )}
+                <div className="mb-1.5">
+                  <ExpirationBadge message={message} />
+                </div>
+
+                {/* Then the existing tags section continues below */}
+                {message.metadata?.tags && message.metadata.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {message.metadata.tags.map((tag) => (
+                      <TagBadge key={tag} tag={tag as MessageTag} />
+                    ))}
                   </div>
                 )}
                 <div className="flex items-start space-x-2">
