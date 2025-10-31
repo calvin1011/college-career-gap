@@ -286,21 +286,25 @@ export default function ChannelPage() {
                     <Sparkles className="w-3 h-3 mr-1" /> Pinned Resource
                   </div>
                 )}
+                {/* Sub-channel badge */}
                 {message.subChannel && (
                   <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mb-1.5">
                     {message.subChannel}
                   </div>
                 )}
+
+                {/* Expiration badge - shows "Expires in X days" */}
                 <div className="mb-1.5">
                   <ExpirationBadge message={message} />
                 </div>
 
-                {/* Then the existing tags section continues below */}
                 {message.metadata?.tags && message.metadata.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1.5">
-                    {message.metadata.tags.map((tag) => (
-                      <TagBadge key={tag} tag={tag as MessageTag} />
-                    ))}
+                    {message.metadata.tags
+                      .filter((tag) => tag !== 'internship' && tag !== 'full-time') // Hide expiring tags
+                      .map((tag) => (
+                        <TagBadge key={tag} tag={tag as MessageTag} />
+                      ))}
                   </div>
                 )}
                 <div className="flex items-start space-x-2">
