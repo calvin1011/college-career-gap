@@ -29,7 +29,7 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
         }
 
         const userDoc = await db.collection("users").doc(userId).get();
-        if (userDoc.exists() && Array.isArray(userDoc.data().notificationTokens)) {
+        if (userDoc.exists && Array.isArray(userDoc.data().notificationTokens)) {
             allTokens.push(...userDoc.data().notificationTokens);
         }
     }
