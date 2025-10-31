@@ -54,7 +54,8 @@ export default function ChannelPage() {
 
   useEffect(() => {
     if (user) {
-      setNotificationsEnabled(!!user.notificationTokens);
+      // Only consider notifications enabled if the array exists AND has tokens in it
+      setNotificationsEnabled(!!user.notificationTokens && user.notificationTokens.length > 0);
     }
   }, [user]);
 
