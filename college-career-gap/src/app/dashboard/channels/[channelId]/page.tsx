@@ -358,14 +358,6 @@ export default function ChannelPage() {
                       )}
                     </div>
 
-                    {message.metadata?.tags && message.metadata.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-1.5">
-                        {message.metadata.tags.map((tag) => (
-                          <TagBadge key={tag} tag={tag as MessageTag} />
-                        ))}
-                      </div>
-                    )}
-
                     <MessageContentRenderer content={message.content} />
 
                     {message.metadata?.links?.[0] && (
