@@ -19,28 +19,38 @@ const EXPIRATION_DAYS: Record<string, number | null> = {
 };
 
 export function ExpirationBadge({ message }: ExpirationBadgeProps) {
-  // Check if message has any expiring tags
   const tags = message.metadata?.tags as MessageTag[] || [];
   const expiringTag = tags.find(tag => EXPIRATION_DAYS[tag] !== null);
 
   if (!expiringTag) return null;
 
-  const expirationDays = EXPIRATION_DAYS[expiringTag];
-  if (!expirationDays) return null;
+  // Check if message has custom expiration date
+  let expiresAt: Date;
 
-  // Calculate days remaining
-  let createdAt: Date;
-
-  if (message.createdAt instanceof Date) {
-    createdAt = message.createdAt;
-  } else if (message.createdAt instanceof Timestamp) {
-    createdAt = message.createdAt.toDate();
+  if (message.expiresAt) {
+    // Use custom expiration date
+    if (message.expiresAt instanceof Date) {
+      expiresAt = message.expiresAt;
+    } else if (message.expiresAt instanceof Timestamp) {
+      expiresAt = message.expiresAt.toDate();
+    } else {
+      return null;
+    }
   } else {
-    return null;
-  }
+    // Fall back to calculated expiration (7 days from creation)
+    let createdAt: Date;
 
-  const expiresAt = new Date(createdAt);
-  expiresAt.setDate(expiresAt.getDate() + expirationDays);
+    if (message.createdAt instanceof Date) {
+      createdAt = message.createdAt;
+    } else if (message.createdAt instanceof Timestamp) {
+      createdAt = message.createdAt.toDate();
+    } else {
+      return null;
+    }
+
+    expiresAt = new Date(createdAt);
+    expiresAt.setDate(expiresAt.getDate() + (EXPIRATION_DAYS[expiringTag] || 7));
+  }
 
   const now = new Date();
   const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

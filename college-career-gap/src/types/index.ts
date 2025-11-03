@@ -52,6 +52,7 @@ export interface Message {
   authorId: string;
   content: string;
   type: 'text' | 'link' | 'media';
+  expiresAt?: Date | Timestamp | FieldValue;
   subChannel?: string;
   metadata?: {
     links?: LinkPreview[];

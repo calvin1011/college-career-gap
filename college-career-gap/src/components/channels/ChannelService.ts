@@ -565,10 +565,25 @@ export async function postMessage(
   authorId: string,
   content: string,
   tags: MessageTag[] = [],
-  subChannel?: string
+  subChannel?: string,
+  customExpirationDate?: string,
 ): Promise<Message> {
   const channelRef = doc(db, 'channels', channelId);
   const messagesRef = collection(db, 'messages');
+
+  let expiresAt: Date | undefined;
+  const hasExpiringTag = tags.some(tag => ['internship', 'full-time'].includes(tag));
+
+  if (hasExpiringTag) {
+    if (customExpirationDate) {
+      // Use professor's custom date
+      expiresAt = new Date(customExpirationDate);
+    } else {
+      // Default to 7 days
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+    }
+  }
 
   try {
     const sanitizedContent = sanitizeMessageContent(content);
@@ -600,6 +615,7 @@ export async function postMessage(
         isPinned: false,
         isEdited: false,
         createdAt: serverTimestamp(),
+        ...(expiresAt ? { expiresAt } : {}),
         ...(subChannel ? { subChannel } : {}),
         metadata: {
           ...(linkPreview ? { links: [linkPreview] } : {}),
