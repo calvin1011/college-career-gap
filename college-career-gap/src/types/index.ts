@@ -50,6 +50,8 @@ export interface Message {
   id: string;
   channelId: string;
   authorId: string;
+  authorDisplayName: string;
+  authorAvatar?: string;
   content: string;
   type: 'text' | 'link' | 'media';
   expiresAt?: Date | Timestamp | FieldValue;

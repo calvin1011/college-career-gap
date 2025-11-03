@@ -562,7 +562,7 @@ export async function findChannelBySlug(slug: string): Promise<Channel | null> {
  */
 export async function postMessage(
   channelId: string,
-  authorId: string,
+  author: { uid: string, displayName: string, avatar?: string },
   content: string,
   tags: MessageTag[] = [],
   subChannel?: string,
@@ -608,7 +608,8 @@ export async function postMessage(
       // Create the new message object with tags and subChannel
       const newMessage: Omit<Message, 'id'> = {
         channelId,
-        authorId,
+        authorId: author.uid,
+        authorDisplayName: author.displayName,
         content: sanitizedContent,
         type: url ? 'link' : 'text',
         reactions: {},
@@ -617,6 +618,7 @@ export async function postMessage(
         createdAt: serverTimestamp(),
         ...(expiresAt ? { expiresAt } : {}),
         ...(subChannel ? { subChannel } : {}),
+        ...(author.avatar ? { authorAvatar: author.avatar } : {}),
         metadata: {
           ...(linkPreview ? { links: [linkPreview] } : {}),
           ...(tags.length > 0 ? { tags } : {})

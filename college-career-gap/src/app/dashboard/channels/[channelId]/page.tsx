@@ -24,6 +24,7 @@ import { requestNotificationPermission, disableNotificationsForDevice } from '@/
 import { TagBadge } from '@/components/channels/TagBadge';
 import { useSubChannels } from '@/hooks/useSubChannels';
 import { ExpirationBadge } from '@/components/channels/ExpirationBadge';
+import Image from "next/image";
 
 export default function ChannelPage() {
   const params = useParams();
@@ -81,7 +82,6 @@ export default function ChannelPage() {
       message.subChannel === user.subChannel
     );
   }, [messages, user, channel]);
-
 
   const handleToggleNotifications = async () => {
     if (!user) return;
@@ -308,16 +308,29 @@ export default function ChannelPage() {
                   </div>
                 )}
                 <div className="flex items-start space-x-2">
-                  <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-blue-600">
-                      {message.authorId === 'system' ? '🏫' : 'P'}
-                    </span>
+                  <div className="relative w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    {message.authorId === 'system' ? (
+                      <span className="text-xs font-semibold text-blue-600">🏫</span>
+                    ) : message.authorAvatar ? (
+                      <Image
+                        src={message.authorAvatar}
+                        alt={message.authorDisplayName || 'avatar'}
+                        layout="fill"
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-semibold text-blue-600">
+                        {message.authorDisplayName?.[0] || 'P'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-900">
-                          {message.authorId === 'system' ? 'Adams State Hub' : 'Professor'}
+                          {message.authorId === 'system'
+                            ? 'Adams State Hub'
+                            : message.authorDisplayName || 'Professor'}
                         </span>
                         <span className="text-xs text-gray-500 ml-2">
                           {formatTimestamp(message.createdAt)}
@@ -380,7 +393,12 @@ export default function ChannelPage() {
           <MessageComposer
             channelId={channel.id}
             channelName={channel.name}
-            userId={user.uid}
+            // MODIFIED: Pass the author object
+            author={{
+              uid: user.uid,
+              displayName: user.displayName,
+              avatar: user.profile?.avatar
+            }}
             isAdmin={isAdmin}
             onMessagePosted={() => {}}
           />
