@@ -28,6 +28,7 @@ export function MessageComposer({
   const [selectedTags, setSelectedTags] = useState<MessageTag[]>([]);
   const [selectedSubChannel, setSelectedSubChannel] = useState<string>('');
   const [isPosting, setIsPosting] = useState(false);
+  const [expirationDate, setExpirationDate] = useState<string>(''); // Fixed: removed message reference
 
   // Fetch sub-channels dynamically
   const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
@@ -53,13 +54,15 @@ export function MessageComposer({
         userId,
         content,
         selectedTags,
-        selectedSubChannel || undefined
+        selectedSubChannel || undefined,
+        expirationDate || undefined
       );
 
       onMessagePosted(newMessage);
       setContent('');
       setSelectedTags([]);
       setSelectedSubChannel('');
+      setExpirationDate('');
       toast.success('Resource shared successfully!');
     } catch (error) {
       console.error('Error posting message:', error);
@@ -133,6 +136,22 @@ export function MessageComposer({
           selectedTags={selectedTags}
           onTagToggle={handleTagToggle}
         />
+
+        {(selectedTags.includes('internship') || selectedTags.includes('full-time')) && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Expiration Date <span className="text-gray-500 text-xs">(Optional - defaults to 7 days)</span>
+            </label>
+            <input
+              type="date"
+              value={expirationDate}
+              onChange={(e) => setExpirationDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isPosting}
+            />
+          </div>
+        )}
 
         <Button type="submit" loading={isPosting} className="w-full md:w-auto">
           Post

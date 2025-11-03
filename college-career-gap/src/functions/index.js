@@ -64,90 +64,77 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
 exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) => {
     console.log(" Starting scheduled cleanup of expired messages...");
 
-    // Define expiration periods (in days)
-    const EXPIRATION_RULES = {
-        'internship': 7,
-        'full-time': 7,
-    };
-
     const now = new Date();
     const messagesRef = db.collection("messages");
+
+    // Query messages that have expired based on their expiresAt field
+    const snapshot = await messagesRef
+        .where('expiresAt', '<', now)
+        .get();
+
+    console.log(`📋 Found ${snapshot.size} expired posts`);
+
+    if (snapshot.size === 0) {
+        console.log("✅ No expired posts to delete");
+        return {
+            success: true,
+            totalDeleted: 0,
+            channelsAffected: 0,
+            summary: {}
+        };
+    }
+
     const channelUpdates = {}; // Track deletions per channel
     let totalDeleted = 0;
     const deletedMessages = []; // Track details for logging
 
-    // Process each tag type
-    for (const [tag, daysUntilExpiration] of Object.entries(EXPIRATION_RULES)) {
-        console.log(` Checking for expired ${tag} posts (older than ${daysUntilExpiration} days)...`);
+    // Delete expired messages in batches (Firestore limit: 500 per batch)
+    const batchSize = 500;
+    const batches = [];
+    let currentBatch = db.batch();
+    let operationCount = 0;
 
-        // Calculate cutoff date
-        const cutoffDate = new Date(now);
-        cutoffDate.setDate(cutoffDate.getDate() - daysUntilExpiration);
+    snapshot.docs.forEach((doc) => {
+        const messageData = doc.data();
+        const channelId = messageData.channelId;
+        const tags = messageData.metadata?.tags || [];
+        const expiringTag = tags.find(tag => ['internship', 'full-time'].includes(tag));
 
-        console.log(` Cutoff date: ${cutoffDate.toISOString()}`);
+        // Track deletion count per channel
+        channelUpdates[channelId] = (channelUpdates[channelId] || 0) + 1;
 
-        // Query messages with this tag that are older than cutoff
-        const snapshot = await messagesRef
-            .where('metadata.tags', 'array-contains', tag)
-            .where('createdAt', '<', cutoffDate)
-            .get();
-
-        console.log(` Found ${snapshot.size} expired ${tag} posts`);
-
-        if (snapshot.size === 0) {
-            console.log(` No expired ${tag} posts to delete`);
-            continue;
-        }
-
-        // Delete each expired message in batches (Firestore limit: 500 per batch)
-        const batchSize = 500;
-        const batches = [];
-        let currentBatch = db.batch();
-        let operationCount = 0;
-
-        snapshot.docs.forEach((doc) => {
-            const messageData = doc.data();
-            const channelId = messageData.channelId;
-            const createdAt = messageData.createdAt?.toDate();
-
-            // Track deletion count per channel
-            channelUpdates[channelId] = (channelUpdates[channelId] || 0) + 1;
-
-            // Store details for logging
-            deletedMessages.push({
-                id: doc.id,
-                channelId,
-                tag,
-                createdAt: createdAt?.toISOString() || 'unknown',
-                content: messageData.content.substring(0, 50) + '...'
-            });
-
-            // Add deletion to batch
-            currentBatch.delete(doc.ref);
-            operationCount++;
-            totalDeleted++;
-
-            // If batch is full, save it and start a new one
-            if (operationCount === batchSize) {
-                batches.push(currentBatch);
-                currentBatch = db.batch();
-                operationCount = 0;
-            }
+        // Store details for logging
+        deletedMessages.push({
+            id: doc.id,
+            channelId,
+            tag: expiringTag || 'unknown',
+            expiresAt: messageData.expiresAt?.toDate()?.toISOString() || 'unknown',
+            content: messageData.content.substring(0, 50) + '...'
         });
 
-        // Add the last batch if it has operations
-        if (operationCount > 0) {
+        // Add deletion to batch
+        currentBatch.delete(doc.ref);
+        operationCount++;
+        totalDeleted++;
+
+        // If batch is full, save it and start a new one
+        if (operationCount === batchSize) {
             batches.push(currentBatch);
+            currentBatch = db.batch();
+            operationCount = 0;
         }
+    });
 
-        // Commit all batches
-        console.log(` Committing ${batches.length} batch(es) for ${tag} posts...`);
-        for (let i = 0; i < batches.length; i++) {
-            await batches[i].commit();
-            console.log(` Batch ${i + 1}/${batches.length} committed`);
-        }
+    // Add the last batch if it has operations
+    if (operationCount > 0) {
+        batches.push(currentBatch);
+    }
 
-        console.log(`  Deleted ${snapshot.size} expired ${tag} posts`);
+    // Commit all batches
+    console.log(` Committing ${batches.length} batch(es)...`);
+    for (let i = 0; i < batches.length; i++) {
+        await batches[i].commit();
+        console.log(` Batch ${i + 1}/${batches.length} committed`);
     }
 
     // Update message counts for affected channels
@@ -217,7 +204,7 @@ exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) =
         console.log(` Cleanup log saved to Firestore`);
     }
 
-    console.log(`Cleanup complete!`);
+    console.log(` Cleanup complete!`);
 
     return {
         success: true,
