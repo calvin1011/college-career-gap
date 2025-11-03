@@ -44,10 +44,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     if (!formData.university) return 'University is required.';
     if (!formData.major) return 'Please select your major.';
 
-    // Only require sub-channel if the major has sub-channels
-    if (majorHasSubChannels && !formData.subChannel) {
-      return 'Please select your concentration.';
-    }
+    // Concentration is now optional - removed validation
 
     return null;
   };
@@ -80,7 +77,12 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   };
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const newValue = e.target.value;
+    let newValue = e.target.value;
+
+    // For display name, only allow letters and spaces
+    if (field === 'displayName') {
+      newValue = newValue.replace(/[^a-zA-Z\s]/g, '');
+    }
 
     // If major changes, reset sub-channel
     if (field === 'major') {
@@ -136,53 +138,103 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Display Name" value={formData.displayName} onChange={handleChange('displayName')} required />
-          <Input type="email" label="Email Address" value={formData.email} onChange={handleChange('email')} placeholder="your.email@university.edu" required />
-          <Input label="University" value={formData.university} onChange={handleChange('university')} required />
+          <Input
+            label="Display Name"
+            value={formData.displayName}
+            onChange={handleChange('displayName')}
+            placeholder="John Doe"
+            required
+            className="bg-white text-gray-900"
+          />
+          <Input
+            type="email"
+            label="Email Address"
+            value={formData.email}
+            onChange={handleChange('email')}
+            placeholder="your.email@university.edu"
+            required
+            className="bg-white text-gray-900"
+          />
+          <Input
+            label="University"
+            value={formData.university}
+            onChange={handleChange('university')}
+            required
+            className="bg-white text-gray-900"
+          />
 
           <div className="space-y-2">
             <label htmlFor="major" className="block text-sm font-medium text-gray-700">Major</label>
-            <select id="major" value={formData.major} onChange={handleChange('major')} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <select
+              id="major"
+              value={formData.major}
+              onChange={handleChange('major')}
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
               <option value="">Select your major</option>
               {SUPPORTED_MAJORS.map(major => (<option key={major} value={major}>{major}</option>))}
             </select>
           </div>
 
-          {/* Dynamic Sub-Channel selector */}
+          {/* Dynamic Sub-Channel selector - NOW OPTIONAL */}
           {formData.major && majorHasSubChannels && (
             <div className="space-y-2">
               <label htmlFor="subChannel" className="block text-sm font-medium text-gray-700">
-                {formData.major} Concentration <span className="text-red-500">*</span>
+                {formData.major} Concentration <span className="text-gray-500 text-xs">(Optional)</span>
               </label>
               {subChannelsLoading ? (
-                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm items-center text-gray-500">
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm items-center text-gray-500">
                   Loading concentrations...
                 </div>
               ) : subChannels.length > 0 ? (
-                <select
-                  id="subChannel"
-                  value={formData.subChannel}
-                  onChange={handleChange('subChannel')}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select your concentration</option>
-                  {subChannels.map(subChannel => (
-                    <option key={subChannel} value={subChannel}>{subChannel}</option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    id="subChannel"
+                    value={formData.subChannel}
+                    onChange={handleChange('subChannel')}
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None - View all {formData.major} resources</option>
+                    {subChannels.map(subChannel => (
+                      <option key={subChannel} value={subChannel}>{subChannel}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500">You can change this later in your profile</p>
+                </>
               ) : (
-                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm items-center text-gray-500">
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm items-center text-gray-500">
                   No concentrations available yet
                 </div>
               )}
-              <p className="text-xs text-gray-500">You can change this later in your profile</p>
             </div>
           )}
 
-          <Input type="number" label="Graduation Year (Optional)" value={formData.graduationYear} onChange={handleChange('graduationYear')} placeholder="e.g., 2025" />
-          <Input type="password" label="Password" value={formData.password} onChange={handleChange('password')} placeholder="At least 8 characters" required />
-          <Input type="password" label="Confirm Password" value={formData.confirmPassword} onChange={handleChange('confirmPassword')} required />
+          <Input
+            type="number"
+            label="Graduation Year (Optional)"
+            value={formData.graduationYear}
+            onChange={handleChange('graduationYear')}
+            placeholder="e.g., 2025"
+            className="bg-white text-gray-900"
+          />
+          <Input
+            type="password"
+            label="Password"
+            value={formData.password}
+            onChange={handleChange('password')}
+            placeholder="At least 8 characters"
+            required
+            className="bg-white text-gray-900"
+          />
+          <Input
+            type="password"
+            label="Confirm Password"
+            value={formData.confirmPassword}
+            onChange={handleChange('confirmPassword')}
+            required
+            className="bg-white text-gray-900"
+          />
 
           <div className="space-y-3 pt-2">
             <Button type="submit" className="w-full" loading={loading}>Create Account</Button>

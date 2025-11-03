@@ -2,10 +2,8 @@ import React from 'react';
 
 export default function ProfileSetupLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 overflow-y-auto">
-      <main className="h-full md:flex md:items-center md:justify-center md:p-4">
-        {children}
-      </main>
+    <div className="h-full overflow-y-auto bg-gray-50">
+      {children}
     </div>
   );
 }

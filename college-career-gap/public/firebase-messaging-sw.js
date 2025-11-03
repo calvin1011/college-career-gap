@@ -3,13 +3,13 @@ importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-com
 
 // Firebase configuration - will be replaced at build time
 const firebaseConfig = {
-  apiKey: "AIzaSyCQ8vgG1FmoZXQp6nvNUI-4peAlWm13uII",
-  authDomain: "college-career-gap-prod.firebaseapp.com",
-  projectId: "college-career-gap-prod",
-  storageBucket: "college-career-gap-prod.firebasestorage.app",
-  messagingSenderId: "210181562937",
-  appId: "1:210181562937:web:2f1ab6d46e069cd67a23e8",
-  measurementId: "G-K5BY8EP552"
+  apiKey: "AIzaSyBBvSbsh0e2Pim7a53nyOyHqClvHVkJYVo",
+  authDomain: "college-career-gap.firebaseapp.com",
+  projectId: "college-career-gap",
+  storageBucket: "college-career-gap.firebasestorage.app",
+  messagingSenderId: "730642444726",
+  appId: "1:730642444726:web:b17e5d835f6ce78cac9117",
+  measurementId: "G-YMVSR8N0KM"
 };
 
 // Initialize Firebase
