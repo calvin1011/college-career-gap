@@ -12,7 +12,11 @@ import { useSubChannels } from '@/hooks/useSubChannels';
 interface MessageComposerProps {
   channelId: string;
   channelName: string;
-  userId: string;
+  author: {
+    uid: string;
+    displayName: string;
+    avatar?: string;
+  };
   isAdmin: boolean;
   onMessagePosted: (message: Message) => void;
 }
@@ -20,7 +24,7 @@ interface MessageComposerProps {
 export function MessageComposer({
   channelId,
   channelName,
-  userId,
+  author,
   isAdmin,
   onMessagePosted,
 }: MessageComposerProps) {
@@ -51,7 +55,7 @@ export function MessageComposer({
     try {
       const newMessage = await postMessage(
         channelId,
-        userId,
+        author,
         content,
         selectedTags,
         selectedSubChannel || undefined,
