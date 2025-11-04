@@ -357,7 +357,7 @@ exports.incrementMessageView = onCall(async (request) => {
 
   const userDoc = await db.collection("users").doc(userId).get();
   if (!userDoc.exists) {
-    throw new functions.httpsGError("not-found", "User document not found.");
+    throw new functions.https.HttpsError("not-found", "User document not found.");
   }
 
   const userRole = userDoc.data().role;
