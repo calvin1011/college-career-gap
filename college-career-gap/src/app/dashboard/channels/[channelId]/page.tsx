@@ -372,7 +372,10 @@ export default function ChannelPage() {
                       )}
                     </div>
 
-                    <MessageContentRenderer content={message.content} />
+                    <MessageContentRenderer
+                      content={message.content}
+                      messageId={message.id}
+                    />
 
                     {message.metadata?.links?.[0] && (
                       <LinkPreviewCard
