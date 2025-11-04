@@ -14,10 +14,11 @@ import {
   Transaction,
   writeBatch
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview, MessageTag} from '@/types';
 import toast from 'react-hot-toast';
-import { db } from '@/services/firebase/config';
+import { db, functions } from '@/services/firebase/config';
 import { sanitizeMessageContent } from '@/utils/validation';
 import app from '@/services/firebase/config';
 
@@ -482,7 +483,19 @@ const getLinkPreview = async (url: string): Promise<LinkPreview | null> => {
   }
 };
 
+const incrementClick = httpsCallable(functions, 'incrementMessageClick');
 
+export async function recordMessageClick(messageId: string): Promise<void> {
+  try {
+    // We call the function but don't wait for the result.
+    // user clicks, the link opens,
+    // and the increment happens in the background.
+    incrementClick({ messageId });
+  } catch (error) {
+    // Log the error but don't block the user
+    console.error("Error recording message click:", error);
+  }
+}
 
 /**
  * Toggles a user's reaction on a message.
@@ -612,6 +625,7 @@ export async function postMessage(
         authorDisplayName: author.displayName,
         content: sanitizedContent,
         type: url ? 'link' : 'text',
+        clickCount: 0,
         reactions: {},
         isPinned: false,
         isEdited: false,

@@ -3,7 +3,8 @@ const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall } = require("firebase-functions/v2/https");
+const functions = require("firebase-functions");
 
 // Initialize the Admin SDK
 initializeApp();
@@ -264,4 +265,49 @@ exports.reconcileMemberCounts = onSchedule("every day 03:00", async (context) =>
 
     if (fixedCount > 0) await batch.commit();
     console.log(` Fixed ${fixedCount} channels`);
+});
+
+exports.incrementMessageClick = onCall(async (request) => {
+  // Check if user is authenticated
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "You must be logged in to perform this action."
+    );
+  }
+
+  // Get the messageId from the request
+  const { messageId } = request.data;
+  if (!messageId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "The function must be called with a 'messageId'."
+    );
+  }
+
+  const userId = request.auth.uid;
+
+  // Get the user's document to check their role
+  const userDoc = await db.collection("users").doc(userId).get();
+  if (!userDoc.exists) {
+    throw new functions.https.HttpsError("not-found", "User document not found.");
+  }
+
+  const userRole = userDoc.data().role;
+
+  // ONLY increment if the user is a 'student'
+  if (userRole === "student") {
+    const messageRef = db.collection("messages").doc(messageId);
+    try {
+      // Atomically increment the count by 1
+      await messageRef.update({ clickCount: FieldValue.increment(1) });
+      return { success: true, message: "Click count incremented." };
+    } catch (error) {
+      console.error("Error incrementing click count:", error);
+      throw new functions.https.HttpsError("internal", "Failed to update click count.");
+    }
+  } else {
+    // If user is an admin, do nothing
+    return { success: true, message: "Admin click. Count not incremented." };
+  }
 });

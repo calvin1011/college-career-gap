@@ -1,15 +1,26 @@
 import React from 'react';
 import { LinkPreview } from '@/types';
 import { Link } from 'lucide-react';
+import { recordMessageClick } from './ChannelService';
 
 interface LinkPreviewCardProps {
   preview: LinkPreview;
+  messageId: string;
 }
 
-export function LinkPreviewCard({ preview }: LinkPreviewCardProps) {
+export function LinkPreviewCard({ preview, messageId }: LinkPreviewCardProps) {
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent immediate navigation
+    void recordMessageClick(messageId);
+    // Manually open the link in a new tab
+    window.open(preview.url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <a
       href={preview.url}
+      onClick={handleClick}
       target="_blank"
       rel="noopener noreferrer"
       className="mt-3 block bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg overflow-hidden transition-colors"
