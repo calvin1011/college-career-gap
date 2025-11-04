@@ -15,6 +15,7 @@ import Link from "next/link";
 import { ReactionPanel } from '@/components/channels/ReactionPanel';
 import { MessageContentRenderer } from '@/components/channels/MessageContentRenderer';
 import { LinkPreviewCard } from '@/components/channels/LinkPreviewCard';
+import { MessageStats } from '@/components/channels/MessageStats';
 import { updateMessage } from '@/components/channels/ChannelService';
 import { EditMessageModal } from '@/components/channels/EditMessageModal';
 import { InviteModal } from '@/components/channels/InviteModal';
@@ -374,11 +375,19 @@ export default function ChannelPage() {
                     <MessageContentRenderer content={message.content} />
 
                     {message.metadata?.links?.[0] && (
-                      <LinkPreviewCard preview={message.metadata.links[0]} />
+                      <LinkPreviewCard
+                        preview={message.metadata.links[0]}
+                        messageId={message.id}
+                      />
                     )}
-                    {user && (
-                      <ReactionPanel message={message} user={user} />
-                    )}
+
+                    {/* Wrapper for reactions and stats */}
+                    <div className="flex items-center justify-between pt-2">
+                      {user && (
+                        <ReactionPanel message={message} user={user} />
+                      )}
+                      <MessageStats message={message} />
+                    </div>
                   </div>
                 </div>
               </div>

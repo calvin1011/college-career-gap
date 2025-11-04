@@ -56,6 +56,7 @@ export interface Message {
   type: 'text' | 'link' | 'media';
   expiresAt?: Date | Timestamp | FieldValue;
   subChannel?: string;
+  clickCount?: number;
   metadata?: {
     links?: LinkPreview[];
     media?: MediaAttachment[];
