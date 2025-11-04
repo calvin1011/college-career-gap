@@ -20,6 +20,7 @@ import { db } from '@/services/firebase/config';
 import { requestNotificationPermission, disableNotificationsForDevice } from '@/services/firebase/notifications';
 import { useSubChannels } from '@/hooks/useSubChannels';
 import { MessageItem } from '@/components/channels/MessageItem';
+import { MajorTabSwitcher } from '@/components/channels/MajorTabSwitcher';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -56,6 +57,10 @@ export default function ChannelPage() {
     }
   }, [user]);
 
+  const isOnPrimaryMajor = channel?.name === user?.major;
+  const isOnSecondMajor = channel?.name === user?.secondMajor;
+  const activeSubChannel = isOnPrimaryMajor ? user?.subChannel : user?.secondMajorSubChannel;
+
   const filteredMessages = useMemo(() => {
     if (!user || !channel) return messages;
 
@@ -64,31 +69,26 @@ export default function ChannelPage() {
       return messages;
     }
 
-    // BOTH ADMINS AND STUDENTS: Same filtering logic
-    // If NO sub-channel selected (viewing "All Business Resources"), show ALL messages
-    if (!user.subChannel) {
+    // Use activeSubChannel
+    if (!activeSubChannel) {
       return messages;
     }
 
-    // If a SPECIFIC sub-channel is selected (e.g., "Accounting")
-    // Show ONLY messages tagged for that specific sub-channel
-    // Do NOT show general messages
+    // Filter by activeSubChannel
     return messages.filter(message =>
-      message.subChannel === user.subChannel
+      message.subChannel === activeSubChannel
     );
-  }, [messages, user, channel]);
+  }, [messages, user, channel, activeSubChannel]);
 
   const handleToggleNotifications = async () => {
     if (!user) return;
 
     try {
       if (notificationsEnabled) {
-        // Use the new function to remove the token for THIS device
         await disableNotificationsForDevice(user.uid);
         setNotificationsEnabled(false);
         toast.success('Notifications disabled for this device');
       } else {
-        // This part remains the same
         await requestNotificationPermission(user.uid);
         setNotificationsEnabled(true);
         toast.success('Notifications enabled for this device');
@@ -170,8 +170,20 @@ export default function ChannelPage() {
     return 'Just now';
   };
 
+  const primaryMajorSlug = user?.major?.toLowerCase().replace(/\s/g, '-') || '';
+  const secondMajorSlug = user?.secondMajor?.toLowerCase().replace(/\s/g, '-');
+
   return (
     <div className="h-full flex flex-col bg-white">
+      {!isAdmin && user?.secondMajor && user.secondMajor.trim() !== '' && (
+        <MajorTabSwitcher
+          primaryMajor={user.major}
+          secondMajor={user.secondMajor}
+          primaryMajorSlug={primaryMajorSlug}
+          secondMajorSlug={secondMajorSlug}
+        />
+      )}
+
       {/* Channel Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4">
         <div className="flex items-start justify-between mb-3">
@@ -220,7 +232,6 @@ export default function ChannelPage() {
           </div>
         </div>
 
-        {/* Sub-Channel Dropdown - Now inside header */}
         {channel && majorHasSubChannels && subChannels.length > 0 && (
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
             <label htmlFor="subChannel" className="text-xs md:text-sm font-medium text-gray-700">
@@ -228,14 +239,15 @@ export default function ChannelPage() {
             </label>
             <select
               id="subChannel"
-              value={user?.subChannel || ''}
+              value={activeSubChannel || ''}
               onChange={async (e) => {
                 if (!user) return;
                 const newSubChannel = e.target.value;
                 try {
                   const userRef = doc(db, 'users', user.uid);
+                  const updateField = isOnPrimaryMajor ? 'subChannel' : 'secondMajorSubChannel';
                   await updateDoc(userRef, {
-                    subChannel: newSubChannel || null
+                    [updateField]: newSubChannel || null
                   });
                   toast.success(newSubChannel ? `Switched to ${newSubChannel}` : 'Viewing all resources');
                 } catch (error) {
@@ -262,12 +274,12 @@ export default function ChannelPage() {
               <div>
                 <Sparkles className="w-12 h-12 md:w-14 md:h-14 text-gray-300 mx-auto mb-3" />
                 <h3 className="text-base md:text-lg font-semibold text-gray-700 mb-1">
-                  {user?.subChannel
-                    ? `No ${user.subChannel} resources yet`
+                  {activeSubChannel
+                    ? `No ${activeSubChannel} resources yet`
                     : `Welcome to ${channel.name}!`}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {user?.subChannel
+                  {activeSubChannel
                     ? 'Check back soon for resources in this concentration.'
                     : 'No resources have been posted yet.'}
                 </p>
@@ -290,13 +302,13 @@ export default function ChannelPage() {
           )}
         </div>
       </div>
+
       {/* Message Composer for Admins */}
       {isAdmin && user && (
         <div className="flex-shrink-0 border-t border-gray-200 bg-white">
           <MessageComposer
             channelId={channel.id}
             channelName={channel.name}
-            // MODIFIED: Pass the author object
             author={{
               uid: user.uid,
               displayName: user.displayName,

@@ -11,7 +11,7 @@ import {
   sendPasswordResetEmail,
   deleteUser,
 } from 'firebase/auth';
-import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
@@ -30,7 +30,9 @@ interface AuthContextType {
   university: string,
   major: Major,
   gradYear: string,
-  subChannel?: string
+  subChannel?: string,
+  secondMajor?: Major,
+  secondMajorSubChannel?: string,
 ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -87,91 +89,143 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     university: string,
     major: Major,
     gradYear: string,
-    subChannel?: string
+    subChannel?: string,
+    secondMajor?: Major,
+    secondMajorSubChannel?: string
   ) => {
     // Check if super admin OR .edu email
     if (!bypassEduValidation(email) && !email.toLowerCase().endsWith('.edu')) {
       throw new Error('Please use your educational (.edu) email address');
     }
 
-  const gradYearValue = gradYear.trim();
-  let graduationYear: number | undefined;
+    const gradYearValue = gradYear.trim();
+    let graduationYear: number | undefined;
 
-  if (gradYearValue) {
-    const parsedYear = parseInt(gradYearValue, 10);
-    if (isNaN(parsedYear)) {
-      throw new Error('Invalid graduation year provided.');
-    }
-    graduationYear = parsedYear;
-  }
-
-  const newChannel = await findChannelByMajor(major);
-  if (!newChannel) {
-    throw new Error(`Could not find a channel for the major: ${major}`);
-  }
-
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  const user = userCredential.user;
-
-  try {
-    // Determine role based on super admin status
-    const userRole = isSuperAdmin(email) ? 'admin' : 'student';
-
-    const userProfile: User = {
-      uid: user.uid,
-      email,
-      displayName,
-      major,
-      subChannel: subChannel || undefined,
-      role: userRole,
-      isVerified: false,
-      joinedChannels: [newChannel.id],
-      createdAt: new Date(),
-      lastActiveAt: new Date(),
-      profile: {
-        university,
-      },
-    };
-
-    if (graduationYear !== undefined) {
-      userProfile.profile.graduationYear = graduationYear;
+    if (gradYearValue) {
+      const parsedYear = parseInt(gradYearValue, 10);
+      if (isNaN(parsedYear)) {
+        throw new Error('Invalid graduation year provided.');
+      }
+      graduationYear = parsedYear;
     }
 
-    await runTransaction(db, async (transaction: Transaction) => {
-      const userDocRef = doc(db, 'users', user.uid);
-      const channelDocRef = doc(db, 'channels', newChannel.id);
+    // Validate second major is different from primary
+    if (secondMajor && secondMajor === major) {
+      throw new Error('Second major must be different from primary major.');
+    }
 
-      const channelDoc = await transaction.get(channelDocRef);
-      if (!channelDoc.exists()) {
-        throw new Error('Channel not found. Please contact support.');
+    // Find primary channel (outside transaction)
+    const primaryChannel = await findChannelByMajor(major);
+    if (!primaryChannel) {
+      throw new Error(`Could not find a channel for the major: ${major}`);
+    }
+
+    // Find second channel if specified (outside transaction)
+    let secondChannel = null;
+    if (secondMajor) {
+      secondChannel = await findChannelByMajor(secondMajor);
+      if (!secondChannel) {
+        throw new Error(`Could not find a channel for the second major: ${secondMajor}`);
+      }
+    }
+
+    // Create user in Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    try {
+      const userRole = isSuperAdmin(email) ? 'admin' : 'student';
+
+      // Build joined channels array
+      const joinedChannels = [primaryChannel.id];
+      if (secondChannel) {
+        joinedChannels.push(secondChannel.id);
       }
 
-      transaction.set(userDocRef, userProfile);
-      transaction.update(channelDocRef, {
-        members: arrayUnion(user.uid),
-        memberCount: increment(1),
+      // Create the user profile object
+      // **FIX 1: Convert all undefined values to null for Firestore**
+      const userProfile: User = {
+        uid: user.uid,
+        email,
+        displayName,
+        major,
+        secondMajor: secondMajor || null,
+        subChannel: subChannel || null,
+        secondMajorSubChannel: secondMajorSubChannel || null,
+        role: userRole,
+        isVerified: false,
+        joinedChannels,
+        createdAt: serverTimestamp(),
+        lastActiveAt: serverTimestamp(),
+        profile: {
+          university,
+          graduationYear: graduationYear !== undefined ? graduationYear : null,
+        },
+      };
+
+      // **FIX 2: Re-ordered transaction to be READS-THEN-WRITES**
+      await runTransaction(db, async (transaction: Transaction) => {
+        const userDocRef = doc(db, 'users', user.uid);
+        const primaryChannelRef = doc(db, 'channels', primaryChannel.id);
+
+        let secondChannelRef = null;
+        if (secondChannel) {
+          secondChannelRef = doc(db, 'channels', secondChannel.id);
+        }
+
+        // --- STAGE 1: ALL READS ---
+        const primaryChannelDoc = await transaction.get(primaryChannelRef); // READ 1
+        if (!primaryChannelDoc.exists()) {
+          throw new Error('Primary channel not found. Please contact support.');
+        }
+
+        if (secondChannelRef) {
+          const secondChannelDoc = await transaction.get(secondChannelRef); // READ 2
+          if (!secondChannelDoc.exists()) {
+            throw new Error('Second channel not found. Please contact support.');
+          }
+        }
+
+        // --- STAGE 2: ALL WRITES ---
+
+        // WRITE 1: Set user
+        transaction.set(userDocRef, userProfile);
+
+        // WRITE 2: Update primary channel
+        transaction.update(primaryChannelRef, {
+          members: arrayUnion(user.uid),
+          memberCount: increment(1),
+        });
+
+        // WRITE 3: Update second channel (if it exists)
+        if (secondChannelRef) {
+          transaction.update(secondChannelRef, {
+            members: arrayUnion(user.uid),
+            memberCount: increment(1),
+          });
+        }
       });
-    });
 
-    await sendEmailVerification(user);
-    toast.success('Account created! Please verify your email and return to refresh.');
+      await sendEmailVerification(user);
+      // Don't toast here, let the component handle it
 
-  } catch (error) {
-    console.error("Sign up failed:", error);
+    } catch (error) {
+      console.error("Sign up transaction failed:", error);
 
-    if (auth.currentUser?.uid === user.uid) {
-      await user.delete();
-    }
-
-    if (error instanceof Error) {
-      if (error.message.includes('permission')) {
-        throw new Error('Permission denied. Please try again or contact support.');
+      // Rollback: delete the auth user if transaction fails
+      if (auth.currentUser?.uid === user.uid) {
+        await user.delete();
       }
-      throw error;
+
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          throw new Error('Permission denied. Please try again or contact support.');
+        }
+        throw error;
+      }
+      throw new Error('Failed to create account. Please try again.');
     }
-    throw new Error('Failed to create account. Please try again.');
-  }
-}
+  };
 
 const signIn = async (email: string, password: string) => {
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
