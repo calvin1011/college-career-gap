@@ -21,6 +21,7 @@ export default function ProfileSetupPage() {
   const [formData, setFormData] = useState({
     displayName: '',
     major: '',
+    secondMajor: '',
     subChannel: '',
     graduationYear: '',
     university: '',
@@ -48,6 +49,7 @@ export default function ProfileSetupPage() {
       setFormData({
         displayName: user.displayName || '',
         major: user.major || '',
+        secondMajor: user.secondMajor || '',
         subChannel: user.subChannel || '',
         graduationYear: user.profile?.graduationYear?.toString() || '',
         university: user.profile?.university || '',
@@ -102,6 +104,8 @@ export default function ProfileSetupPage() {
     // If major changes, reset sub-channel
     if (field === 'major') {
       setFormData(prev => ({ ...prev, [field]: newValue, subChannel: '' }));
+    } else if (field === 'secondMajor') {
+      setFormData(prev => ({ ...prev, [field]: newValue, secondMajorSubChannel: '' }));
     } else {
       setFormData(prev => ({ ...prev, [field]: newValue }));
     }
@@ -234,6 +238,29 @@ export default function ProfileSetupPage() {
                     No concentrations available yet - contact your professor
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Second Major (Students Only) */}
+            {user?.role !== 'admin' && (
+              <div>
+                <label htmlFor="secondMajor" className="block text-sm font-medium text-gray-700 mb-2">
+                  Second Major <span className="text-gray-500 text-xs">(Optional)</span>
+                </label>
+                <select
+                  id="secondMajor"
+                  value={formData.secondMajor || ''}
+                  onChange={handleChange('secondMajor')}
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">None - Single major only</option>
+                  {SUPPORTED_MAJORS.filter(m => m !== formData.major).map(major => (
+                    <option key={major} value={major}>{major}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Add a second major to switch between channels with tabs
+                </p>
               </div>
             )}
 

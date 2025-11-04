@@ -22,7 +22,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     displayName: '',
     university: '',
     major: '',
+    secondMajor: '',
     subChannel: '',
+    secondMajorSubChannel: '',
     graduationYear: '',
   });
   const [loading, setLoading] = useState(false);
@@ -30,8 +32,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
   const { signUp } = useAuth();
 
-  // Fetch sub-channels dynamically based on selected major
-  const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(formData.major);
+  const { subChannels: primarySubChannels, loading: primarySubChannelsLoading, hasSubChannels: primaryHasSubChannels } = useSubChannels(formData.major);
+  const { subChannels: secondarySubChannels, loading: secondarySubChannelsLoading, hasSubChannels: secondaryHasSubChannels } = useSubChannels(formData.secondMajor);
 
   const validateForm = (): string | null => {
     if (!bypassEduValidation(formData.email) && !formData.email.toLowerCase().endsWith('.edu')) {
@@ -44,7 +46,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     if (!formData.university) return 'University is required.';
     if (!formData.major) return 'Please select your major.';
 
-    // Concentration is now optional - removed validation
+    if (formData.secondMajor && formData.secondMajor === formData.major) {
+      return 'Second major must be different from primary major.';
+    }
 
     return null;
   };
@@ -66,7 +70,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         formData.university,
         formData.major as Major,
         formData.graduationYear,
-        formData.subChannel || undefined
+        formData.subChannel || undefined,
+        formData.secondMajor as Major | undefined,
+        formData.secondMajorSubChannel || undefined
       );
       setShowSuccess(true);
     } catch (error: unknown) {
@@ -87,6 +93,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     // If major changes, reset sub-channel
     if (field === 'major') {
       setFormData(prev => ({ ...prev, [field]: newValue, subChannel: '' }));
+    } else if (field === 'secondMajor') {
+      setFormData(prev => ({ ...prev, [field]: newValue, secondMajorSubChannel: '' }));
     } else {
       setFormData(prev => ({ ...prev, [field]: newValue }));
     }
@@ -128,6 +136,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     );
   }
 
+  const availableSecondMajors = SUPPORTED_MAJORS.filter(m => m !== formData.major);
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -163,6 +173,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             className="bg-white text-gray-900"
           />
 
+          {/* Primary Major */}
           <div className="space-y-2">
             <label htmlFor="major" className="block text-sm font-medium text-gray-700">Major</label>
             <select
@@ -177,17 +188,17 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             </select>
           </div>
 
-          {/* Dynamic Sub-Channel selector - NOW OPTIONAL */}
-          {formData.major && majorHasSubChannels && (
+          {/* Primary Major Sub-Channel */}
+          {formData.major && primaryHasSubChannels && (
             <div className="space-y-2">
               <label htmlFor="subChannel" className="block text-sm font-medium text-gray-700">
                 {formData.major} Concentration <span className="text-gray-500 text-xs">(Optional)</span>
               </label>
-              {subChannelsLoading ? (
+              {primarySubChannelsLoading ? (
                 <div className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm items-center text-gray-500">
                   Loading concentrations...
                 </div>
-              ) : subChannels.length > 0 ? (
+              ) : primarySubChannels.length > 0 ? (
                 <>
                   <select
                     id="subChannel"
@@ -196,12 +207,61 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
                     className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">None - View all {formData.major} resources</option>
-                    {subChannels.map(subChannel => (
+                    {primarySubChannels.map(subChannel => (
                       <option key={subChannel} value={subChannel}>{subChannel}</option>
                     ))}
                   </select>
                   <p className="text-xs text-gray-500">You can change this later in your profile</p>
                 </>
+              ) : (
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm items-center text-gray-500">
+                  No concentrations available yet
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Second Major */}
+          <div className="space-y-2">
+            <label htmlFor="secondMajor" className="block text-sm font-medium text-gray-700">
+              Second Major <span className="text-gray-500 text-xs">(Optional)</span>
+            </label>
+            <select
+              id="secondMajor"
+              value={formData.secondMajor}
+              onChange={handleChange('secondMajor')}
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">None - Single major only</option>
+              {availableSecondMajors.map(major => (
+                <option key={major} value={major}>{major}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500">Add a second major to access both channels</p>
+          </div>
+
+          {/* Second Major Sub-Channel */}
+          {formData.secondMajor && secondaryHasSubChannels && (
+            <div className="space-y-2">
+              <label htmlFor="secondMajorSubChannel" className="block text-sm font-medium text-gray-700">
+                {formData.secondMajor} Concentration <span className="text-gray-500 text-xs">(Optional)</span>
+              </label>
+              {secondarySubChannelsLoading ? (
+                <div className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm items-center text-gray-500">
+                  Loading concentrations...
+                </div>
+              ) : secondarySubChannels.length > 0 ? (
+                <select
+                  id="secondMajorSubChannel"
+                  value={formData.secondMajorSubChannel}
+                  onChange={handleChange('secondMajorSubChannel')}
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">None - View all {formData.secondMajor} resources</option>
+                  {secondarySubChannels.map(subChannel => (
+                    <option key={subChannel} value={subChannel}>{subChannel}</option>
+                  ))}
+                </select>
               ) : (
                 <div className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm items-center text-gray-500">
                   No concentrations available yet

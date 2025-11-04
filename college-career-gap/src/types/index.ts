@@ -7,7 +7,9 @@ export interface User {
   email: string;
   displayName: string;
   major: string;
-  subChannel?: string;
+  secondMajor: string | null;
+  subChannel: string | null;
+  secondMajorSubChannel: string | null;
   role: 'admin' | 'student';
   isVerified: boolean;
   joinedChannels: string[];
@@ -17,7 +19,7 @@ export interface User {
   profile: {
     avatar?: string;
     bio?: string;
-    graduationYear?: number;
+    graduationYear: number | null;
     university?: string;
   };
 }

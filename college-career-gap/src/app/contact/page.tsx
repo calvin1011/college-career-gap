@@ -49,7 +49,12 @@ ${formData.message}`;
           joinedChannels: [],
           createdAt: new Date(),
           lastActiveAt: new Date(),
-          profile: {}
+          secondMajor: null,
+          subChannel: null,
+          secondMajorSubChannel: null,
+          profile: {
+            graduationYear: null
+          }
         }
       );
 

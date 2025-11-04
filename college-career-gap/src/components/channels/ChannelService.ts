@@ -12,7 +12,8 @@ import {
   addDoc,
   serverTimestamp,
   Transaction,
-  writeBatch
+  writeBatch,
+  DocumentReference
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -306,6 +307,9 @@ export async function updateUserProfileAndMajor(
   profileData: {
     displayName: string;
     major: string;
+    secondMajor?: string;
+    subChannel?: string;
+    secondMajorSubChannel?: string; // This was missing in your function args, but present in your page.tsx
     graduationYear: string;
     university: string;
   },
@@ -313,8 +317,14 @@ export async function updateUserProfileAndMajor(
 ) {
   const userRef = doc(db, 'users', userId);
   const newMajor = profileData.major as Major;
+  const newSecondMajor = profileData.secondMajor && profileData.secondMajor.trim() !== ''
+    ? profileData.secondMajor as Major
+    : undefined;
+
   let avatarUrl: string | undefined = undefined;
 
+  // 1. Handle Profile Picture Upload (outside the transaction)
+  // This is a non-transactional operation and must be done first.
   if (profilePic) {
     const storageRef = ref(storage, `avatars/${userId}`);
     toast.loading('Uploading picture...');
@@ -323,66 +333,130 @@ export async function updateUserProfileAndMajor(
     toast.dismiss();
   }
 
+  // 2. Begin Transaction
   return runTransaction(db, async (transaction) => {
+
+    // --- STAGE 1: ALL READS ---
+
+    // 1. Read the user document
     const userDoc = await transaction.get(userRef);
     if (!userDoc.exists()) throw new Error("User not found!");
 
     const currentUserData = userDoc.data() as User;
-    const oldMajor = currentUserData.major as Major;
+    const oldMajor = currentUserData.major as Major | undefined;
+    const oldSecondMajor = currentUserData.secondMajor as Major | undefined;
 
-    const majorHasChanged = oldMajor !== newMajor;
+    const primaryMajorChanged = oldMajor !== newMajor;
+    const secondMajorChanged = oldSecondMajor !== newSecondMajor;
 
-    // Handle leaving old channels
+    // 2. Get refs for ALL channels (old and new)
+    const channelRefsToRead = new Map<string, DocumentReference>();
+
+    // Ref for old primary channel (if it changed and existed)
+    if (primaryMajorChanged && oldMajor) {
+      channelRefsToRead.set('oldPrimary', doc(db, 'channels', oldMajor.toLowerCase().replace(/\s/g, '-')));
+    }
+    // Ref for old second major (if it changed and existed)
+    if (secondMajorChanged && oldSecondMajor) {
+      channelRefsToRead.set('oldSecondary', doc(db, 'channels', oldSecondMajor.toLowerCase().replace(/\s/g, '-')));
+    }
+
+    // Ref for new primary channel
+    const newPrimaryChannelRef = doc(db, 'channels', newMajor.toLowerCase().replace(/\s/g, '-'));
+    channelRefsToRead.set('newPrimary', newPrimaryChannelRef);
+
+    // Ref for new second major (if it exists)
+    let newSecondChannelRef: DocumentReference | null = null;
+    if (newSecondMajor) {
+      newSecondChannelRef = doc(db, 'channels', newSecondMajor.toLowerCase().replace(/\s/g, '-'));
+      channelRefsToRead.set('newSecondary', newSecondChannelRef);
+    }
+
+    // 3. Read ALL channel docs at once (this fulfills the "reads first" rule)
+    const channelDocs = await Promise.all(
+      Array.from(channelRefsToRead.values()).map(ref => transaction.get(ref))
+    );
+
+    // Map docs by their ID (slug) for easy lookup
+    const channelDocsMap = new Map(channelDocs.map(doc => [doc.id, doc]));
+
+
+    // --- STAGE 2: LOGIC & PREPARE WRITES ---
+
     const channelsToLeave: string[] = [];
-    if (majorHasChanged && oldMajor) {
-      const oldChannel = await findChannelByMajor(oldMajor);
-      if (oldChannel) channelsToLeave.push(oldChannel.id);
+    const channelsToJoin: string[] = [];
+
+    // Check which old channels to leave
+    if (primaryMajorChanged && oldMajor) {
+      const slug = oldMajor.toLowerCase().replace(/\s/g, '-');
+      if (channelDocsMap.get(slug)?.exists()) channelsToLeave.push(slug);
+    }
+    if (secondMajorChanged && oldSecondMajor) {
+      const slug = oldSecondMajor.toLowerCase().replace(/\s/g, '-');
+      if (channelDocsMap.get(slug)?.exists()) channelsToLeave.push(slug);
     }
 
-    // Remove from old channels
-    for (const channelId of channelsToLeave) {
-      const channelRef = doc(db, 'channels', channelId);
-      transaction.update(channelRef, {
-        members: arrayRemove(userId),
-        memberCount: increment(-1),
-      });
+    // Check which new channels to join (and if they exist)
+    const newPrimaryChannelDoc = channelDocsMap.get(newPrimaryChannelRef.id);
+    if (!newPrimaryChannelDoc?.exists()) throw new Error(`Channel for major "${newMajor}" not found.`);
+    channelsToJoin.push(newPrimaryChannelDoc.id);
+
+    if (newSecondMajor && newSecondChannelRef) {
+      const newSecondChannelDoc = channelDocsMap.get(newSecondChannelRef.id);
+      if (!newSecondChannelDoc?.exists()) throw new Error(`Channel for major "${newSecondMajor}" not found.`);
+      channelsToJoin.push(newSecondChannelDoc.id);
     }
 
-    // Get new channels to join
-    const newChannel = await findChannelByMajor(newMajor);
-    if (!newChannel) throw new Error(`Channel for major "${newMajor}" not found.`);
-
-    const channelsToJoin = [newChannel.id];
-
-    // Join new channels
-    for (const channelId of channelsToJoin) {
-      const channelRef = doc(db, 'channels', channelId);
-      transaction.update(channelRef, {
-        members: arrayUnion(userId),
-        memberCount: increment(1),
-      });
-    }
-
-    // Update user document
+    // Prepare the final user update object
     const userUpdateData: { [key: string]: unknown } = {
       displayName: profileData.displayName,
       major: newMajor,
+      secondMajor: newSecondMajor || null,
+      subChannel: profileData.subChannel || null,
+      secondMajorSubChannel: profileData.secondMajorSubChannel || null,
       'profile.university': profileData.university,
       lastActiveAt: serverTimestamp(),
-      joinedChannels: channelsToJoin,
+      joinedChannels: channelsToJoin, // This is the new, complete list of channels
     };
 
     if (profileData.graduationYear) {
       userUpdateData['profile.graduationYear'] = parseInt(profileData.graduationYear, 10);
     }
 
+    // Add avatar URL to update object ONLY if a new one was uploaded
     if (avatarUrl) {
       userUpdateData['profile.avatar'] = avatarUrl;
     }
 
+    // --- STAGE 3: ALL WRITES ---
+
+    // Write 1: Leave old channels
+    for (const channelId of channelsToLeave) {
+      const channelRef = channelRefsToRead.get(
+        channelId === oldMajor?.toLowerCase().replace(/\s/g, '-') ? 'oldPrimary' : 'oldSecondary'
+      )!;
+      transaction.update(channelRef, {
+        members: arrayRemove(userId),
+        memberCount: increment(-1),
+      });
+    }
+
+    // Write 2: Join new channels
+    for (const channelId of channelsToJoin) {
+      const channelRef = channelRefsToRead.get(
+        channelId === newPrimaryChannelRef.id ? 'newPrimary' : 'newSecondary'
+      )!;
+      transaction.update(channelRef, {
+        members: arrayUnion(userId),
+        memberCount: increment(1),
+      });
+    }
+
+    // Write 3: Update user document
     transaction.update(userRef, userUpdateData);
 
-    return newChannel;
+    // Return the new primary channel data for redirection
+    return { id: newPrimaryChannelDoc.id, ...newPrimaryChannelDoc.data() } as Channel;
   });
 }
 /**
