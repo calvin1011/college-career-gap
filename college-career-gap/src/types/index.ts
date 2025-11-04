@@ -35,7 +35,7 @@ export interface Channel {
   inviteCode: string;
   qrCodeData?: string;
   parentChannel?: string;
-  subChannels?: string[]; // Now dynamically managed by admins
+  subChannels?: string[];
   settings: {
     allowReactions: boolean;
     maxMessageLength: number;
@@ -57,6 +57,7 @@ export interface Message {
   expiresAt?: Date | Timestamp | FieldValue;
   subChannel?: string;
   clickCount?: number;
+  viewCount?: number;
   metadata?: {
     links?: LinkPreview[];
     media?: MediaAttachment[];

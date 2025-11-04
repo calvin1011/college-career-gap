@@ -26,6 +26,7 @@ import { TagBadge } from '@/components/channels/TagBadge';
 import { useSubChannels } from '@/hooks/useSubChannels';
 import { ExpirationBadge } from '@/components/channels/ExpirationBadge';
 import Image from "next/image";
+import { useMessageViewTracking } from '@/hooks/useMessageViewTracking';
 
 export default function ChannelPage() {
   const params = useParams();
@@ -280,121 +281,129 @@ export default function ChannelPage() {
               </div>
             </div>
           ) : (
-            filteredMessages.map((message) => (
-              <div key={message.id} className={`p-3 rounded-lg shadow-sm border-l-4 transition-colors ${message.isPinned ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-200'}`}>
-                {message.isPinned && (
-                  <div className="flex items-center mb-1.5 text-blue-600 text-xs font-medium">
-                    <Sparkles className="w-3 h-3 mr-1" /> Pinned Resource
-                  </div>
-                )}
-                {/* Sub-channel badge */}
-                {message.subChannel && (
-                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mb-1.5">
-                    {message.subChannel}
-                  </div>
-                )}
+            filteredMessages.map((message) => {
+              const viewRef = useMessageViewTracking(message.id, user?.role as 'student' | 'admin');
 
-                {/* Expiration badge - shows "Expires in X days" */}
-                <div className="mb-1.5">
-                  <ExpirationBadge message={message} />
-                </div>
+              return (
+                <div
+                  key={message.id}
+                  ref={viewRef}
+                  className={`p-3 rounded-lg shadow-sm border-l-4 transition-colors ${message.isPinned ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-200'}`}
+                >
+                  {message.isPinned && (
+                    <div className="flex items-center mb-1.5 text-blue-600 text-xs font-medium">
+                      <Sparkles className="w-3 h-3 mr-1" /> Pinned Resource
+                    </div>
+                  )}
+                  {/* Sub-channel badge */}
+                  {message.subChannel && (
+                    <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mb-1.5">
+                      {message.subChannel}
+                    </div>
+                  )}
 
-                {message.metadata?.tags && message.metadata.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1.5">
-                    {message.metadata.tags
-                      .filter((tag) => tag !== 'internship' && tag !== 'full-time') // Hide expiring tags
-                      .map((tag) => (
-                        <TagBadge key={tag} tag={tag as MessageTag} />
-                      ))}
+                  {/* Expiration badge - shows "Expires in X days" */}
+                  <div className="mb-1.5">
+                    <ExpirationBadge message={message} />
                   </div>
-                )}
-                <div className="flex items-start space-x-2">
-                  <div className="relative w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    {message.authorId === 'system' ? (
-                      <span className="text-xs font-semibold text-blue-600">🏫</span>
-                    ) : message.authorAvatar ? (
-                      <Image
-                        src={message.authorAvatar}
-                        alt={message.authorDisplayName || 'avatar'}
-                        layout="fill"
-                        className="rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs font-semibold text-blue-600">
-                        {message.authorDisplayName?.[0] || 'P'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">
-                          {message.authorId === 'system'
-                            ? 'Adams State Hub'
-                            : message.authorDisplayName || 'Professor'}
+
+                  {message.metadata?.tags && message.metadata.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1.5">
+                      {message.metadata.tags
+                        .filter((tag) => tag !== 'internship' && tag !== 'full-time') // Hide expiring tags
+                        .map((tag) => (
+                          <TagBadge key={tag} tag={tag as MessageTag} />
+                        ))}
+                    </div>
+                  )}
+                  <div className="flex items-start space-x-2">
+                    <div className="relative w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      {message.authorId === 'system' ? (
+                        <span className="text-xs font-semibold text-blue-600">🏫</span>
+                      ) : message.authorAvatar ? (
+                        <Image
+                          src={message.authorAvatar}
+                          alt={message.authorDisplayName || 'avatar'}
+                          layout="fill"
+                          className="rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-semibold text-blue-600">
+                          {message.authorDisplayName?.[0] || 'P'}
                         </span>
-                        <span className="text-xs text-gray-500 ml-2">
-                          {formatTimestamp(message.createdAt)}
-                        </span>
-                        {message.isEdited && (
-                          <span className="text-xs text-gray-400 ml-1">(edited)</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-gray-900">
+                            {message.authorId === 'system'
+                              ? 'Adams State Hub'
+                              : message.authorDisplayName || 'Professor'}
+                          </span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            {formatTimestamp(message.createdAt)}
+                          </span>
+                          {message.isEdited && (
+                            <span className="text-xs text-gray-400 ml-1">(edited)</span>
+                          )}
+                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center space-x-0.5 ml-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingMessage(message)}
+                              className="p-1 h-7 w-7"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-gray-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTogglePin(message)}
+                              disabled={moderationLoading === message.id}
+                              className="p-1 h-7 w-7"
+                            >
+                              <Pin className={`w-3.5 h-3.5 ${message.isPinned ? 'text-blue-600' : 'text-gray-500'}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteMessage(message)}
+                              disabled={moderationLoading === message.id}
+                              className="p-1 h-7 w-7"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                            </Button>
+                          </div>
                         )}
                       </div>
-                      {isAdmin && (
-                        <div className="flex items-center space-x-0.5 ml-2 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingMessage(message)}
-                            className="p-1 h-7 w-7"
-                          >
-                            <Edit className="w-3.5 h-3.5 text-gray-500" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleTogglePin(message)}
-                            disabled={moderationLoading === message.id}
-                            className="p-1 h-7 w-7"
-                          >
-                            <Pin className={`w-3.5 h-3.5 ${message.isPinned ? 'text-blue-600' : 'text-gray-500'}`} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteMessage(message)}
-                            disabled={moderationLoading === message.id}
-                            className="p-1 h-7 w-7"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
 
-                    <MessageContentRenderer
-                      content={message.content}
-                      messageId={message.id}
-                    />
-
-                    {message.metadata?.links?.[0] && (
-                      <LinkPreviewCard
-                        preview={message.metadata.links[0]}
+                      <MessageContentRenderer
+                        content={message.content}
                         messageId={message.id}
                       />
-                    )}
 
-                    {/* Wrapper for reactions and stats */}
-                    <div className="flex items-center justify-between pt-2">
-                      {user && (
-                        <ReactionPanel message={message} user={user} />
+                      {message.metadata?.links?.[0] && (
+                        <LinkPreviewCard
+                          preview={message.metadata.links[0]}
+                          messageId={message.id}
+                        />
                       )}
-                      <MessageStats message={message} />
+
+                      {/* Wrapper for reactions and stats */}
+                      <div className="flex items-center justify-between pt-2">
+                        {user && (
+                          <ReactionPanel message={message} user={user} />
+                        )}
+                        <MessageStats message={message} />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
