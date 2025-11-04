@@ -10,13 +10,19 @@ interface LinkPreviewCardProps {
 
 export function LinkPreviewCard({ preview, messageId }: LinkPreviewCardProps) {
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent immediate navigation
-    void recordMessageClick(messageId);
-    // Manually open the link in a new tab
-    window.open(preview.url, '_blank', 'noopener,noreferrer');
-  };
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
 
+    // Open link immediately for better UX
+    window.open(preview.url, '_blank', 'noopener,noreferrer');
+
+    // Record click asynchronously (non-blocking)
+    try {
+      await recordMessageClick(messageId);
+    } catch (error) {
+      console.error('Failed to record click:', error);
+    }
+  };
   return (
     <a
       href={preview.url}
