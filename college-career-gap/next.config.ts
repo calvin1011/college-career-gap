@@ -29,7 +29,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.googleapis.com *.googletagmanager.com *.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; img-src 'self' data: blob: *.googleapis.com firebasestorage.googleapis.com; connect-src 'self' *.googleapis.com wss://*.firebaseio.com; font-src 'self' fonts.gstatic.com; worker-src 'self' blob:;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.googleapis.com *.googletagmanager.com *.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; img-src 'self' data: blob: *.googleapis.com firebasestorage.googleapis.com; connect-src 'self' *.googleapis.com *.cloudfunctions.net wss://*.firebaseio.com font-src 'self' fonts.gstatic.com; worker-src 'self' blob:;",
           },
         ],
       },
