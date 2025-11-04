@@ -333,3 +333,73 @@ exports.incrementMessageClick = onCall(async (request) => {
     return { success: true, message: "Admin click not counted." };
   }
 });
+
+exports.incrementMessageView = onCall(async (request) => {
+  console.log('incrementMessageView called');
+
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "You must be logged in to perform this action."
+    );
+  }
+
+  const { messageId } = request.data;
+  if (!messageId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "The function must be called with a 'messageId'."
+    );
+  }
+
+  const userId = request.auth.uid;
+  console.log('User:', userId, 'Message:', messageId);
+
+  const userDoc = await db.collection("users").doc(userId).get();
+  if (!userDoc.exists) {
+    throw new functions.httpsGError("not-found", "User document not found.");
+  }
+
+  const userRole = userDoc.data().role;
+  console.log('User role:', userRole);
+
+  // Only count views for students
+  if (userRole === "student") {
+    const messageRef = db.collection("messages").doc(messageId);
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const messageDoc = await transaction.get(messageRef);
+
+        if (!messageDoc.exists) {
+          throw new functions.https.HttpsError("not-found", "Message not found.");
+        }
+
+        const messageData = messageDoc.data();
+        const viewedBy = messageData.viewedBy || {};
+
+        // Check if user has already viewed
+        if (viewedBy[userId]) {
+          console.log('User already viewed this message');
+          return;
+        }
+
+        // Increment viewCount and add user to viewedBy map
+        transaction.update(messageRef, {
+          viewCount: FieldValue.increment(1),
+          [`viewedBy.${userId}`]: FieldValue.serverTimestamp()
+        });
+
+        console.log('New view recorded');
+      });
+
+      return { success: true, message: "View recorded." };
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
+      throw new functions.https.HttpsError("internal", "Failed to update view count.");
+    }
+  } else {
+    console.log('Admin view, not counted');
+    return { success: true, message: "Admin view not counted." };
+  }
+});

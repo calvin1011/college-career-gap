@@ -484,6 +484,7 @@ const getLinkPreview = async (url: string): Promise<LinkPreview | null> => {
 };
 
 const incrementClick = httpsCallable(functions, 'incrementMessageClick');
+const incrementView = httpsCallable(functions, 'incrementMessageView');
 
 export async function recordMessageClick(messageId: string): Promise<void> {
   try {
@@ -807,5 +808,20 @@ export async function joinChannel(channelId: string, userId: string) {
     }
 
     throw error;
+  }
+}
+
+/**
+ * Records a message view by calling a cloud function.
+ * This is non-blocking and will not throw an error to the UI.
+ */
+export async function recordMessageView(messageId: string): Promise<void> {
+  try {
+    // Call the function asynchronously without awaiting a response
+    // to prevent blocking the UI.
+    incrementView({ messageId });
+  } catch (error) {
+    // Log errors for debugging, but don't bother the user.
+    console.error("Error initiating message view recording:", error);
   }
 }
