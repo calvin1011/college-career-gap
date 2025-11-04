@@ -7,13 +7,13 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Adams State Resource Hub',
+  title: 'Adams State University',
   description: 'Career resources and guidance for University students',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Adams State Hub'
+    title: 'Adams State University'
   }
 }
 
@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#3B82F6',
+  themeColor: '#16a34a',
 }
 
 export default function RootLayout({

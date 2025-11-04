@@ -37,7 +37,7 @@ export default function PrivacyPage() {
             </div>
             <div className="space-y-4 text-gray-300">
               <p>
-                When you use The Resource Hub, we collect the following information:
+                When you use College Career Gap, we collect the following information:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li><strong>Account Information:</strong> Your name, educational email address, university, major, and graduation year</li>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
             <div className="space-y-4 text-gray-300">
               <p>We use your information to:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Provide and maintain the Resource Hub platform</li>
+                <li>Provide and maintain the College Career Gap platform</li>
                 <li>Connect you with major-specific career resources and guidance</li>
                 <li>Enable communication between students and professors</li>
                 <li>Send you important notifications about new resources (if you opt-in)</li>
@@ -133,7 +133,7 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-semibold mb-4 text-blue-400">Educational Use</h2>
             <div className="space-y-4 text-gray-300">
               <p>
-                The Resource Hub is an educational platform designed to support student career development. We are committed to maintaining a safe, respectful environment. All content is moderated, and we comply with educational data protection standards.
+                College Career Gap is an educational platform designed to support student career development. We are committed to maintaining a safe, respectful environment. All content is moderated, and we comply with educational data protection standards.
               </p>
             </div>
           </section>
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
       {/* Footer */}
       <footer className="border-t border-gray-800 mt-20">
         <div className="container mx-auto px-4 py-8 text-center text-gray-400">
-          <p>© 2025 Resource Hub. Built for student success.</p>
+          <p>© College Career Gap. Built for student success.</p>
         </div>
       </footer>
     </div>
