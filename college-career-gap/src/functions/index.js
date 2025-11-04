@@ -268,7 +268,8 @@ exports.reconcileMemberCounts = onSchedule("every day 03:00", async (context) =>
 });
 
 exports.incrementMessageClick = onCall(async (request) => {
-  // Check if user is authenticated
+  console.log('incrementMessageClick called');
+
   if (!request.auth) {
     throw new functions.https.HttpsError(
       "unauthenticated",
@@ -276,7 +277,6 @@ exports.incrementMessageClick = onCall(async (request) => {
     );
   }
 
-  // Get the messageId from the request
   const { messageId } = request.data;
   if (!messageId) {
     throw new functions.https.HttpsError(
@@ -286,28 +286,50 @@ exports.incrementMessageClick = onCall(async (request) => {
   }
 
   const userId = request.auth.uid;
+  console.log('User:', userId, 'Message:', messageId);
 
-  // Get the user's document to check their role
   const userDoc = await db.collection("users").doc(userId).get();
   if (!userDoc.exists) {
     throw new functions.https.HttpsError("not-found", "User document not found.");
   }
 
   const userRole = userDoc.data().role;
+  console.log('User role:', userRole);
 
-  // ONLY increment if the user is a 'student'
   if (userRole === "student") {
     const messageRef = db.collection("messages").doc(messageId);
+
     try {
-      // Atomically increment the count by 1
-      await messageRef.update({ clickCount: FieldValue.increment(1) });
-      return { success: true, message: "Click count incremented." };
+      await db.runTransaction(async (transaction) => {
+        const messageDoc = await transaction.get(messageRef);
+
+        if (!messageDoc.exists) {
+          throw new functions.https.HttpsError("not-found", "Message not found.");
+        }
+
+        const messageData = messageDoc.data();
+        const clickedBy = messageData.clickedBy || {};
+
+        if (clickedBy[userId]) {
+          console.log('User already clicked this message');
+          return;
+        }
+
+        transaction.update(messageRef, {
+          clickCount: FieldValue.increment(1),
+          [`clickedBy.${userId}`]: FieldValue.serverTimestamp()
+        });
+
+        console.log('New click recorded');
+      });
+
+      return { success: true, message: "Click recorded." };
     } catch (error) {
       console.error("Error incrementing click count:", error);
       throw new functions.https.HttpsError("internal", "Failed to update click count.");
     }
   } else {
-    // If user is an admin, do nothing
-    return { success: true, message: "Admin click. Count not incremented." };
+    console.log('Admin click, not counted');
+    return { success: true, message: "Admin click not counted." };
   }
 });
