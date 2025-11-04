@@ -193,7 +193,7 @@ ${formData.message}`;
       {/* Footer */}
       <footer className="border-t border-gray-800 mt-20">
         <div className="container mx-auto px-4 py-8 text-center text-gray-400">
-          <p>© 2025 The Resource Hub. Built for student success.</p>
+          <p>© 2025 College Career Gap. Built for student success.</p>
         </div>
       </footer>
     </div>

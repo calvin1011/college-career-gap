@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  name: 'Adams State Resource Hub',
+  name: 'Adams State University',
   version: '1.0.0',
   supportEmail: 'support@adams-resources.com',
   maxMessageLength: 2000,

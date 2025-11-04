@@ -60,7 +60,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Header with Close button for mobile */}
         <div className="flex items-center justify-between h-20 border-b border-gray-800 px-4 flex-shrink-0">
-          <Link href="/dashboard" className="text-xl font-bold">Resource Hub</Link>
+          <Link href="/dashboard" className="text-xl font-bold">College Career Gap</Link>
           <button onClick={onClose} className="md:hidden p-2 text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>

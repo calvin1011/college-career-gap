@@ -96,7 +96,7 @@ export function MessageItem({
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-gray-900">
                 {message.authorId === 'system'
-                  ? 'Adams State Hub'
+                  ? 'Adams State University'
                   : message.authorDisplayName || 'Professor'}
               </span>
               <span className="text-xs text-gray-500 ml-2">
