@@ -487,12 +487,8 @@ const incrementClick = httpsCallable(functions, 'incrementMessageClick');
 
 export async function recordMessageClick(messageId: string): Promise<void> {
   try {
-    // We call the function but don't wait for the result.
-    // user clicks, the link opens,
-    // and the increment happens in the background.
-    incrementClick({ messageId });
+    await incrementClick({ messageId });
   } catch (error) {
-    // Log the error but don't block the user
     console.error("Error recording message click:", error);
   }
 }
