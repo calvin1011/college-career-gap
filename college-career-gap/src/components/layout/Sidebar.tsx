@@ -64,7 +64,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-lg font-semibold relative">
@@ -169,7 +170,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <span>Admin Feedback</span>
                 </Link>
 
-                {/* ADD THIS NEW LINK */}
                 <Link
                   href="/dashboard/admin/cleanup-logs"
                   className={cn(
@@ -183,10 +183,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </>
             )}
           </nav>
+
+          <div className="h-20" />
         </div>
 
         {/* Sign Out Button */}
-        <div className="px-4 py-6 border-t border-gray-800 flex-shrink-0">
+        <div className="px-4 py-4 border-t border-gray-800 flex-shrink-0 bg-gray-900">
           <button
             onClick={handleSignOut}
             className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-500 rounded-md hover:bg-gray-800 group"
