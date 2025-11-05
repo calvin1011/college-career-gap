@@ -7,6 +7,9 @@ module.exports = {
     ],
     theme: {
         extend: {
+            spacing: {
+                'safe': 'env(safe-area-inset-bottom)',
+            },
             colors: {
                 primary: {
                     50: '#f0fdf4',
