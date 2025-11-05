@@ -11,6 +11,71 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
+exports.onUserUpdate = onDocumentUpdated("users/{userId}", async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const userId = event.params.userId;
+
+    const avatarBefore = before.profile?.avatar;
+    const avatarAfter = after.profile?.avatar;
+
+    // Check if the displayName or avatar actually changed
+    if (before.displayName === after.displayName && avatarBefore === avatarAfter) {
+        console.log(`User ${userId} updated, but name and avatar are the same. No propagation needed.`);
+        return null;
+    }
+
+    console.log(`User ${userId} updated. Propagating name/avatar changes to messages...`);
+
+    // Prepare the update payload
+    const updateData = {
+        authorDisplayName: after.displayName,
+    };
+
+    if (avatarAfter) {
+        updateData.authorAvatar = avatarAfter;
+    } else {
+        // If the new avatar is null/undefined, remove the field
+        updateData.authorAvatar = FieldValue.delete();
+    }
+
+    // Find all messages by this author
+    const messagesQuery = db.collection("messages").where("authorId", "==", userId);
+    const snapshot = await messagesQuery.get();
+
+    if (snapshot.empty) {
+        console.log(`User ${userId} has no messages. Propagation complete.`);
+        return null;
+    }
+
+    const batches = [];
+    let currentBatch = db.batch();
+    let operationCount = 0;
+
+    snapshot.docs.forEach((doc) => {
+        currentBatch.update(doc.ref, updateData);
+        operationCount++;
+
+        // If batch is full (500 ops), push it and start a new one
+        if (operationCount === 500) {
+            batches.push(currentBatch);
+            currentBatch = db.batch();
+            operationCount = 0;
+        }
+    });
+
+    // Add the last (or only) batch if it has operations
+    if (operationCount > 0) {
+        batches.push(currentBatch);
+    }
+
+    // Commit all batches in parallel
+    await Promise.all(batches.map(batch => batch.commit()));
+
+    console.log(`Successfully updated ${snapshot.size} messages for user ${userId}.`);
+    return null;
+});
+
 exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", async (event) => {
     const message = event.data.data();
     const channelId = message.channelId;
