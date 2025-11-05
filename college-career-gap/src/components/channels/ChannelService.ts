@@ -310,7 +310,7 @@ export async function updateUserProfileAndMajor(
   profileData: {
     displayName: string;
     major: string;
-    secondMajor?: string;
+    secondMajor?: string | undefined;
     subChannel?: string;
     secondMajorSubChannel?: string;
     graduationYear: string;

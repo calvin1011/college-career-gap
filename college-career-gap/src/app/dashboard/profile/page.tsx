@@ -83,7 +83,14 @@ export default function ProfileSetupPage() {
 
     setLoading(true);
     try {
-      const newChannel = await updateUserProfileAndMajor(user.uid, formData, profilePicFile);
+      const cleanedFormData = {
+        ...formData,
+        secondMajor: formData.secondMajor?.trim() || undefined,
+        secondMajorSubChannel: formData.secondMajor?.trim() ? formData.secondMajorSubChannel : undefined,
+        subChannel: formData.subChannel || undefined,
+      };
+
+      const newChannel = await updateUserProfileAndMajor(user.uid, cleanedFormData, profilePicFile);
       toast.success('Profile updated successfully!');
       if (newChannel?.slug) {
         router.push(`/dashboard/channels/${newChannel.slug}`);
