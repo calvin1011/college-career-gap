@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { SignUpForm } from '@/components/auth/SignUpForm';
@@ -9,14 +9,33 @@ import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
 import Link from "next/link";
 
-export default function HomePage() {
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const { user, loading } = useAuth();
+function HomePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read URL params to set initial state
+  const inviteCode = searchParams.get('invite');
+  const initialAuthMode = searchParams.get('authMode');
+
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(
+    initialAuthMode === 'signup' ? 'signup' : 'signin'
+  );
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Store invite code from URL param
+    if (inviteCode) {
+      localStorage.setItem('pendingInvite', inviteCode);
+    }
+  }, [inviteCode]);
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      // Don't redirect immediately if there's a pending invite
+      // The login logic will handle the redirect
+      if (!localStorage.getItem('pendingInvite')) {
+        router.push('/dashboard');
+      }
     }
   }, [user, loading, router]);
 
@@ -29,7 +48,12 @@ export default function HomePage() {
   }
 
   if (user) {
-    return null; // we will redirect the user to the dashboard
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <p className="ml-4">Redirecting...</p>
+      </div>
+    );
   }
 
   return (
@@ -84,7 +108,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Auth Form Section - MOVED UP */}
+          {/* Auth Form Section */}
           <div id="auth-section" className="max-w-md mx-auto pt-20">
             {authMode === 'signin' ? (
               <LoginForm onToggleMode={() => setAuthMode('signup')} />
@@ -150,5 +174,17 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   );
 }

@@ -11,18 +11,18 @@ import {
   sendPasswordResetEmail,
   deleteUser,
 } from 'firebase/auth';
-import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
-import { findChannelByMajor, deleteUserAccount } from '@/components/channels/ChannelService';
+import { findChannelByMajor, deleteUserAccount, findChannelByInviteCode, joinChannel } from '@/components/channels/ChannelService';
 import { isSuperAdmin, bypassEduValidation } from '@/config/superAdmin';
 
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (
   email: string,
   password: string,
@@ -81,6 +81,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (unsubscribeFirestore) unsubscribeFirestore();
     };
   }, [firebaseUser]);
+
+  const handlePendingInvite = async (user: User): Promise<string | null> => {
+    const pendingInvite = localStorage.getItem('pendingInvite');
+    if (!pendingInvite || !user) return null;
+
+    console.log(`Handling pending invite: ${pendingInvite}`);
+    localStorage.removeItem('pendingInvite'); // Clear it immediately
+
+    try {
+      const channel = await findChannelByInviteCode(pendingInvite);
+      if (channel && !user.joinedChannels.includes(channel.id)) {
+        await joinChannel(channel.id, user.uid);
+        toast.success(`Successfully joined ${channel.name}!`);
+        return channel.slug; // Return slug for redirect
+      } else if (channel) {
+        toast(`You are already a member of ${channel.name}.`);
+        return channel.slug; // Already a member, just redirect
+      } else {
+        toast.error('Invite link is invalid or has expired.');
+      }
+    } catch (error) {
+      console.error('Failed to handle pending invite:', error);
+      toast.error('Could not join channel from invite.');
+    }
+    return null;
+  };
 
   const signUp = async (
     email: string,
@@ -143,7 +169,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Create the user profile object
-      // **FIX 1: Convert all undefined values to null for Firestore**
       const userProfile: User = {
         uid: user.uid,
         email,
@@ -163,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       };
 
-      // **FIX 2: Re-ordered transaction to be READS-THEN-WRITES**
+      // transaction to be READS-THEN-WRITES
       await runTransaction(db, async (transaction: Transaction) => {
         const userDocRef = doc(db, 'users', user.uid);
         const primaryChannelRef = doc(db, 'channels', primaryChannel.id);
@@ -173,7 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           secondChannelRef = doc(db, 'channels', secondChannel.id);
         }
 
-        // --- STAGE 1: ALL READS ---
         const primaryChannelDoc = await transaction.get(primaryChannelRef); // READ 1
         if (!primaryChannelDoc.exists()) {
           throw new Error('Primary channel not found. Please contact support.');
@@ -186,18 +210,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // --- STAGE 2: ALL WRITES ---
-
-        // WRITE 1: Set user
         transaction.set(userDocRef, userProfile);
 
-        // WRITE 2: Update primary channel
         transaction.update(primaryChannelRef, {
           members: arrayUnion(user.uid),
           memberCount: increment(1),
         });
 
-        // WRITE 3: Update second channel (if it exists)
         if (secondChannelRef) {
           transaction.update(secondChannelRef, {
             members: arrayUnion(user.uid),
@@ -227,17 +246,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-const signIn = async (email: string, password: string) => {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+const signIn = async (email: string, password: string): Promise<string | null> => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-  // Super admins can bypass email verification
-  if (!isSuperAdmin(email) && !userCredential.user.emailVerified) {
-    await signOut(auth);
-    throw new Error('Please verify your email before signing in.');
-  }
+    if (!isSuperAdmin(email) && !userCredential.user.emailVerified) {
+      await signOut(auth);
+      throw new Error('Please verify your email before signing in.');
+    }
 
-  toast.success('Welcome back!');
-};
+    // Handle pending invite on successful login
+    const userDocRef = doc(db, 'users', userCredential.user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+      const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+      const channelSlug = await handlePendingInvite(userData);
+
+      // If invite was handled, return the path to redirect to
+      if (channelSlug) {
+        return `/dashboard/channels/${channelSlug}`;
+      }
+    }
+
+    toast.success('Welcome back!');
+    return null; // No specific redirect
+  };
+
 
   const handleSignOut = async () => {
     await signOut(auth);

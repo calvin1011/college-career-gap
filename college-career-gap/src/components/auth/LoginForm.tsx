@@ -57,8 +57,10 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
 
     try {
       setLoading(true);
-      await signIn(email, password);
-      router.push('/dashboard');
+      // signIn now returns a potential redirect path
+      const redirectPath = await signIn(email, password);
+      // Redirect to the invite channel, or the default dashboard
+      router.push(redirectPath || '/dashboard');
     } catch (error: unknown) {
       toast.error((error as Error).message || 'Failed to sign in');
     } finally {
@@ -164,7 +166,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
               <button
                 type="button"
                 onClick={() => setShowResetPassword(true)}
-                className="text-sm text-blue-600 hover:text-blue-800 underline"
+                className="text-sm text-green-600 hover:text-green-800 underline"
               >
                 Forgot your password?
               </button>
@@ -175,7 +177,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
                   <button
                     type="button"
                     onClick={onToggleMode}
-                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    className="text-sm text-green-600 hover:text-green-800 underline"
                     data-testid="toggle-signup"
                   >
                     Sign up
