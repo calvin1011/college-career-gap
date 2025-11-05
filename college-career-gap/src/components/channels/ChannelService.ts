@@ -393,15 +393,38 @@ export async function updateUserProfileAndMajor(
     // Check which new channels to join (and if they exist)
     const newPrimaryChannelDoc = channelDocsMap.get(newPrimaryChannelRef.id);
     if (!newPrimaryChannelDoc?.exists()) throw new Error(`Channel for major "${newMajor}" not found.`);
-    channelsToJoin.push(newPrimaryChannelDoc.id);
+
+    // Only add to join list if NOT already a member
+    const primaryChannelData = newPrimaryChannelDoc.data() as Channel;
+    if (!primaryChannelData.members?.includes(userId)) {
+      channelsToJoin.push(newPrimaryChannelDoc.id);
+    }
 
     if (newSecondMajor && newSecondChannelRef) {
       const newSecondChannelDoc = channelDocsMap.get(newSecondChannelRef.id);
       if (!newSecondChannelDoc?.exists()) throw new Error(`Channel for major "${newSecondMajor}" not found.`);
-      channelsToJoin.push(newSecondChannelDoc.id);
+
+      // Only add to join list if NOT already a member
+      const secondChannelData = newSecondChannelDoc.data() as Channel;
+      if (!secondChannelData.members?.includes(userId)) {
+        channelsToJoin.push(newSecondChannelDoc.id);
+      }
     }
 
     // Prepare the final user update object
+    const finalJoinedChannels: string[] = [];
+
+    // Add primary channel
+    finalJoinedChannels.push(newPrimaryChannelDoc.id);
+
+    // Add second channel if exists
+    if (newSecondMajor && newSecondChannelRef) {
+      const newSecondChannelDoc = channelDocsMap.get(newSecondChannelRef.id);
+      if (newSecondChannelDoc?.exists()) {
+        finalJoinedChannels.push(newSecondChannelDoc.id);
+      }
+    }
+
     const userUpdateData: { [key: string]: unknown } = {
       displayName: profileData.displayName,
       major: newMajor,
@@ -410,7 +433,7 @@ export async function updateUserProfileAndMajor(
       secondMajorSubChannel: profileData.secondMajorSubChannel || null,
       'profile.university': profileData.university,
       lastActiveAt: serverTimestamp(),
-      joinedChannels: channelsToJoin,
+      joinedChannels: finalJoinedChannels,
     };
 
     if (profileData.graduationYear) {
@@ -433,11 +456,11 @@ export async function updateUserProfileAndMajor(
       });
     }
 
-    // Join new channels
     for (const channelId of channelsToJoin) {
       const channelRef = channelRefsToRead.get(
         channelId === newPrimaryChannelRef.id ? 'newPrimary' : 'newSecondary'
       )!;
+
       transaction.update(channelRef, {
         members: arrayUnion(userId),
         memberCount: increment(1),
@@ -501,47 +524,21 @@ export async function joinMajorChannel(userId: string, major: Major): Promise<bo
       return false;
     }
 
-    // Check if user is already a member of this channel
+    // Check if user is already a member before calling joinChannel
     if (userData.joinedChannels?.includes(channel.id)) {
       console.log(`User is already a member of the ${major} channel`);
-      return true; // Already joined, consider it a success
+      return true;
     }
 
     console.log(`Joining channel ${channel.id} for user ${userId}`);
 
-    // Try to join the channel
     try {
       await joinChannel(channel.id, userId);
       console.log(`Successfully joined channel ${channel.id}`);
       return true;
     } catch (joinError) {
       console.error("Error joining channel:", joinError);
-
-      // If joining fails, try a manual update as fallback
-      try {
-        console.log("Attempting manual channel join as fallback...");
-
-        const channelRef = doc(db, 'channels', channel.id);
-
-        // Update user document to include the channel
-        await updateDoc(userRef, {
-          joinedChannels: arrayUnion(channel.id),
-          lastActiveAt: serverTimestamp()
-        });
-
-        // Update channel document to include the user
-        await updateDoc(channelRef, {
-          members: arrayUnion(userId),
-          memberCount: increment(1),
-          updatedAt: serverTimestamp()
-        });
-
-        console.log("Manual channel join successful");
-        return true;
-      } catch (fallbackError) {
-        console.error("Fallback join attempt failed:", fallbackError);
-        return false;
-      }
+      return false;
     }
   } catch (error) {
     console.error("Error in joinMajorChannel:", error);
@@ -866,26 +863,32 @@ export async function joinChannel(channelId: string, userId: string) {
       }
 
       const channelData = channelDoc.data() as Channel;
-      // const userData = userDoc.data();
+      const userData = userDoc.data();
 
-      // Check if user is already a member
-      if (channelData.members?.includes(userId)) {
+      const isAlreadyChannelMember = channelData.members?.includes(userId);
+      const isAlreadyInUserChannels = userData?.joinedChannels?.includes(channelId);
+
+      if (isAlreadyChannelMember && isAlreadyInUserChannels) {
         console.log("User is already a member of this channel!");
         return;
       }
 
-      // Atomically add the user to the channel and update the member count
-      transaction.update(channelRef, {
-        members: arrayUnion(userId),
-        memberCount: increment(1),
-        updatedAt: serverTimestamp()
-      });
+      // Only update if NOT already a member
+      if (!isAlreadyChannelMember) {
+        transaction.update(channelRef, {
+          members: arrayUnion(userId),
+          memberCount: increment(1),
+          updatedAt: serverTimestamp()
+        });
+      }
 
-      // Atomically add the channel to the user's joined channels
-      transaction.update(userRef, {
-        joinedChannels: arrayUnion(channelId),
-        lastActiveAt: serverTimestamp()
-      });
+      // Only update if channel not in user's joined list
+      if (!isAlreadyInUserChannels) {
+        transaction.update(userRef, {
+          joinedChannels: arrayUnion(channelId),
+          lastActiveAt: serverTimestamp()
+        });
+      }
     });
 
     toast.success(`Welcome to ${channelId.replace('-', ' ')} channel! 🎉`);
