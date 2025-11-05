@@ -11,8 +11,6 @@ import { ShieldCheck } from 'lucide-react';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { Settings } from 'lucide-react';
 
-
-
 // Define the props interface
 interface SidebarProps {
   isOpen: boolean;
@@ -69,7 +67,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-lg font-semibold relative">
+              <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-lg font-semibold relative">
                 {user?.profile?.avatar ? (
                   <Image
                     src={user.profile.avatar}
@@ -114,7 +112,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </p>
                   <Link
                     href="/dashboard/profile"
-                    className="block mt-2 text-center text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-md"
+                    className="block mt-2 text-center text-xs bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded-md"
                   >
                     Join Major Channel
                   </Link>
@@ -128,7 +126,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               href={dashboardHref}
               className={cn(
                 'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                { 'bg-blue-600 text-white': pathname.startsWith('/dashboard/channels') || pathname === '/dashboard' }
+                { 'bg-green-600 text-white': pathname.startsWith('/dashboard/channels') || pathname === '/dashboard' }
               )}
             >
               <Home className="w-5 h-5 mr-3" />
@@ -138,7 +136,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               href="/dashboard/profile"
               className={cn(
                 'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                { 'bg-blue-600 text-white': pathname === '/dashboard/profile' }
+                { 'bg-green-600 text-white': pathname === '/dashboard/profile' }
               )}
             >
               <User className="w-5 h-5 mr-3" />
@@ -150,7 +148,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 href="/dashboard/admin/subchannels"
                 className={cn(
                   'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                  { 'bg-blue-600 text-white': pathname === '/dashboard/admin/subchannels' }
+                  { 'bg-green-600 text-white': pathname === '/dashboard/admin/subchannels' }
                 )}
               >
                 <Settings className="w-5 h-5 mr-3" />
@@ -164,7 +162,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   href="/dashboard/admin/feedback"
                   className={cn(
                     'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                    { 'bg-blue-600 text-white': pathname === '/dashboard/admin/feedback' }
+                    { 'bg-green-600 text-white': pathname === '/dashboard/admin/feedback' }
                   )}
                 >
                   <ShieldCheck className="w-5 h-5 mr-3" />
@@ -176,7 +174,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   href="/dashboard/admin/cleanup-logs"
                   className={cn(
                     'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                    { 'bg-blue-600 text-white': pathname === '/dashboard/admin/cleanup-logs' }
+                    { 'bg-green-600 text-white': pathname === '/dashboard/admin/cleanup-logs' }
                   )}
                 >
                   <Trash2 className="w-5 h-5 mr-3" />
