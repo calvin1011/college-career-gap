@@ -51,24 +51,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar Content */}
       <div
         className={cn(
-          "flex flex-col w-64 bg-gray-900 text-white h-screen transition-transform z-50",
+          "flex flex-col w-64 bg-gray-900 text-white transition-transform z-50",
           "fixed md:relative md:translate-x-0",
+          "h-[100dvh] md:h-screen",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Header with Close button for mobile */}
-        <div className="flex items-center justify-between h-20 border-b border-gray-800 px-4 flex-shrink-0">
-          <Link href="/dashboard" className="text-xl font-bold">College Career Gap</Link>
-          <button onClick={onClose} className="md:hidden p-2 text-gray-400 hover:text-white">
+        <div className="flex items-center justify-between h-16 md:h-20 border-b border-gray-800 px-4 flex-shrink-0">
+          <Link href="/dashboard" className="text-lg md:text-xl font-bold truncate">College Career Gap</Link>
+          <button onClick={onClose} className="md:hidden p-2 text-gray-400 hover:text-white flex-shrink-0">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-2">
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-lg font-semibold relative">
+              <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-lg font-semibold relative flex-shrink-0">
                 {user?.profile?.avatar ? (
                   <Image
                     src={user.profile.avatar}
@@ -80,26 +81,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <span>{user?.displayName?.[0] || 'A'}</span>
                 )}
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-w-0">
                 <h3 className="text-sm font-medium truncate">{user?.displayName}</h3>
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
               </div>
             </div>
-            <div className="bg-gray-800 rounded-lg p-4 space-y-2.5">
-              <div className="flex items-center text-sm">
+            <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+              <div className="flex items-center text-xs md:text-sm">
                 <School className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
                 <span className="text-gray-300 mr-1">Major:</span>
                 <span className="ml-auto font-medium text-white truncate">{user?.major || 'Not Set'}</span>
               </div>
               {user?.profile?.university && (
-                <div className="flex items-center text-sm">
+                <div className="flex items-center text-xs md:text-sm">
                   <School className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
                   <span className="text-gray-300 mr-1">School:</span>
                   <span className="ml-auto font-medium text-white truncate">{user?.profile?.university}</span>
                 </div>
               )}
               {user?.profile?.graduationYear && (
-                <div className="flex items-center text-sm">
+                <div className="flex items-center text-xs md:text-sm">
                   <CalendarDays className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
                   <span className="text-gray-300 mr-1">Grad Year:</span>
                   <span className="ml-auto font-medium text-white">{user?.profile?.graduationYear}</span>
@@ -122,25 +123,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
 
-          <nav className="px-4 py-6 space-y-1">
+          <nav className="px-4 py-4 space-y-1">
             <Link
               href={dashboardHref}
               className={cn(
-                'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
                 { 'bg-green-600 text-white': pathname.startsWith('/dashboard/channels') || pathname === '/dashboard' }
               )}
             >
-              <Home className="w-5 h-5 mr-3" />
+              <Home className="w-5 h-5 mr-3 flex-shrink-0" />
               <span>Dashboard</span>
             </Link>
             <Link
               href="/dashboard/profile"
               className={cn(
-                'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
                 { 'bg-green-600 text-white': pathname === '/dashboard/profile' }
               )}
             >
-              <User className="w-5 h-5 mr-3" />
+              <User className="w-5 h-5 mr-3 flex-shrink-0" />
               <span>Profile Settings</span>
             </Link>
 
@@ -148,11 +149,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Link
                 href="/dashboard/admin/subchannels"
                 className={cn(
-                  'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                  'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
                   { 'bg-green-600 text-white': pathname === '/dashboard/admin/subchannels' }
                 )}
               >
-                <Settings className="w-5 h-5 mr-3" />
+                <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
                 <span>Manage Concentrations</span>
               </Link>
             )}
@@ -162,38 +163,36 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <Link
                   href="/dashboard/admin/feedback"
                   className={cn(
-                    'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                    'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
                     { 'bg-green-600 text-white': pathname === '/dashboard/admin/feedback' }
                   )}
                 >
-                  <ShieldCheck className="w-5 h-5 mr-3" />
+                  <ShieldCheck className="w-5 h-5 mr-3 flex-shrink-0" />
                   <span>Admin Feedback</span>
                 </Link>
 
                 <Link
                   href="/dashboard/admin/cleanup-logs"
                   className={cn(
-                    'flex items-center px-3 py-2 text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                    'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
                     { 'bg-green-600 text-white': pathname === '/dashboard/admin/cleanup-logs' }
                   )}
                 >
-                  <Trash2 className="w-5 h-5 mr-3" />
+                  <Trash2 className="w-5 h-5 mr-3 flex-shrink-0" />
                   <span>Cleanup Logs</span>
                 </Link>
               </>
             )}
           </nav>
-
-          <div className="h-20" />
         </div>
 
-        {/* Sign Out Button */}
-        <div className="px-4 py-4 border-t border-gray-800 flex-shrink-0 bg-gray-900">
+        {/* Sign Out Button*/}
+        <div className="px-4 py-3 border-t border-gray-800 flex-shrink-0 bg-gray-900 pb-safe">
           <button
             onClick={handleSignOut}
-            className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-500 rounded-md hover:bg-gray-800 group"
+            className="flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-red-500 rounded-md hover:bg-gray-800 transition-colors"
           >
-            <LogOut className="w-5 h-5 mr-2" />
+            <LogOut className="w-5 h-5 mr-2 flex-shrink-0" />
             <span>Sign Out</span>
           </button>
         </div>
