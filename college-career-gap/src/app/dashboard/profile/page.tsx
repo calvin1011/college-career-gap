@@ -256,7 +256,7 @@ export default function ProfileSetupPage() {
             {user?.role !== 'admin' && (
               <div>
                 <label htmlFor="secondMajor" className="block text-sm font-medium text-gray-700 mb-2">
-                  Second Major <span className="text-gray-500 text-xs">(Optional)</span>
+                  Second Major/ Minor <span className="text-gray-500 text-xs">(Optional)</span>
                 </label>
                 <select
                   id="secondMajor"
