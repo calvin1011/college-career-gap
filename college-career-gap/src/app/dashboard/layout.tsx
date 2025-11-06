@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Please Verify Your Email</h2>
           <p className="text-gray-600 mt-2">
-            A verification link has been sent to <strong>{firebaseUser.email}</strong>. Please check your inbox and click the link to continue.
+            A verification link has been sent to <strong>{firebaseUser.email}</strong>. Please check your inbox/spam and click the link to continue.
           </p>
 
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-left">
@@ -52,9 +52,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <strong>Don&apos;t see the email?</strong>
             </p>
             <ul className="text-xs text-yellow-700 mt-2 ml-4 list-disc space-y-1">
-              <li>Check your <strong>spam/junk folder</strong></li>
-              <li>Wait 2-3 minutes for delivery</li>
+              <li>Wait 2-3 minutes for the email if not received</li>
               <li>Make sure you entered the correct email</li>
+              <li> After verifying, return to this tab and refresh your screen to login</li>
             </ul>
           </div>
 
