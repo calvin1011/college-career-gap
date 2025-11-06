@@ -71,7 +71,7 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
           {majorHasSubChannels && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Concentration <span className="text-gray-500 text-xs">(Optional - leave blank for all students)</span>
+                Concentration <span className="text-gray-500 text-xs">(Optional - Select &#34;All&#34; for all students)</span>
               </label>
               {subChannelsLoading ? (
                 <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
