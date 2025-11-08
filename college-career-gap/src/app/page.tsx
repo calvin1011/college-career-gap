@@ -68,20 +68,26 @@ function HomePageContent() {
                 <span>Adams State University</span>
                 <span className="block text-green-600">College Career Gap</span>
               </h1>
+              <p className="text-xl md:text-2xl text-gray-600 mb-4 text-balance">
+                <strong>Bridge the gap</strong> between classroom and career.
+              </p>
               <p className="text-xl md:text-2xl text-gray-600 mb-8 text-balance">
-                Bridge the gap between classroom and career. <strong>Students</strong>, get curated resources from your professors. <strong>Professors</strong>, share valuable opportunities and guide your students to success.
+                <strong>Students</strong>, get curated resources from your professors.
+                <strong>Professors</strong>, share valuable opportunities and guide your students to success.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                <Button
-                  size="lg"
-                  onClick={() => {
-                    setAuthMode('signup');
-                    document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  data-testid="signup-button"
+                <Link
+                  href="https://drive.google.com/drive/folders/11PtqFmt5iOkPqN_aqag3Gao6FuDLp_4S?usp=sharing"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  Get Started
-                </Button>
+                  <Button
+                    size="lg"
+                    data-testid="signup-button"
+                  >
+                    How To Get Started
+                  </Button>
+                </Link>
                 <Button
                   size="lg"
                   variant="outline"
