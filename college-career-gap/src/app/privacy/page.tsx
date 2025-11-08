@@ -96,7 +96,7 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li><strong>Within Your Major Channel:</strong> Your display name and profile information are visible to other members of your major&#39;s channel</li>
-                <li><strong>With Professors:</strong> Professors in your major channel can see your participation and engagement</li>
+                <li><strong>With Professors:</strong> Professors in your major channel can see your engagement through reactions</li>
                 <li><strong>Service Providers:</strong> We use Firebase (Google) for hosting and data storage, subject to their privacy policy</li>
                 <li><strong>Legal Requirements:</strong> We may disclose information if required by law or to protect user safety</li>
               </ul>
@@ -143,12 +143,11 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-semibold mb-4">Questions or Concerns?</h2>
             <div className="space-y-4 text-gray-300">
               <p>
-                If you have questions about this Privacy Policy or how we handle your data, please contact us using email below or though the &#34;contact&#34; page:
-              </p>
-              <p className="text-blue-400">
-                <a href="mailto:calvinssendawula@gmail.com" className="hover:underline">
-                  calvinssendawula@gmail.com
-                </a>
+                If you have questions about this Privacy Policy or how we handle your data, please contact us through our{' '}
+                <Link href="/contact" className="text-blue-400 hover:underline font-medium">
+                  contact page
+                </Link>
+                .
               </p>
               <p className="text-sm text-gray-400 mt-4">
                 We will respond to privacy inquiries within 48 hours.

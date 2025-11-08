@@ -114,7 +114,7 @@ export function MessageComposer({
         {majorHasSubChannels && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Concentration <span className="text-gray-500 text-xs">(Optional - Select &#34;All&#34; for all students)</span>
+              Concentration
             </label>
             {subChannelsLoading ? (
               <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
@@ -135,9 +135,6 @@ export function MessageComposer({
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Select a concentration to target specific students, or leave as &quot;All&quot; for everyone
-                </p>
               </>
             ) : (
               <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
