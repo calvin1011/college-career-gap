@@ -93,7 +93,7 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Change which concentration sees this message
+
                   </p>
                 </>
               ) : (
