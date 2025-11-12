@@ -26,7 +26,8 @@ const SUPPORTED_MAJORS = [
   'Biology',
   'Chemistry',
   'Psychology',
-  'Kinesiology'
+  'Kinesiology',
+  'Nursing'
 ];
 
 // SEED MESSAGES (from ChannelService.ts)

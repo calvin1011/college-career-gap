@@ -145,6 +145,10 @@ const SEED_MESSAGES = {
       type: 'text' as const,
       isPinned: false
     }
+  ],
+  'Nursing': [
+    { content: "Welcome to Nursing! 🩺 Find clinical opportunities, licensing information, and career guidance for nursing students.", type: 'text' as const, isPinned: true },
+    { content: "Explore nursing specialties: pediatrics, emergency care, mental health, community health, and nurse practitioner pathways.", type: 'text' as const, isPinned: false }
   ]
 };
 

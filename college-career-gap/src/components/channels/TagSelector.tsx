@@ -28,6 +28,8 @@ export function TagSelector({ selectedTags, onTagToggle }: TagSelectorProps) {
         return 'bg-blue-100 text-blue-700 border-blue-400';
       case 'full-time':
         return 'bg-green-100 text-green-700 border-green-400';
+      case 'event':
+        return 'bg-indigo-100 text-indigo-700 border-indigo-400';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-400';
     }

@@ -12,6 +12,7 @@ export const APP_CONFIG = {
     'Biology',
     'Chemistry',
     'Psychology',
-    'Kinesiology'
+    'Kinesiology',
+    'Nursing'
   ]
 } as const;

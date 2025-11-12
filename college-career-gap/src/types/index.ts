@@ -88,7 +88,8 @@ export const MESSAGE_TAGS = [
   'podcast',
   'advice-tip',
   'internship',
-  'full-time'
+  'full-time',
+  'event'
 ] as const;
 
 export type MessageTag = typeof MESSAGE_TAGS[number];
@@ -129,6 +130,12 @@ export const TAG_CONFIG: Record<MessageTag, { label: string; color: string; bgCo
     color: 'text-green-700',
     bgColor: 'bg-green-100',
     borderColor: 'border-green-400'
+  },
+  'event': {
+    label: '📅 Event',
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-100',
+    borderColor: 'border-indigo-400'
   }
 };
 
@@ -163,7 +170,8 @@ export const SUPPORTED_MAJORS = [
   'Biology',
   'Chemistry',
   'Psychology',
-  'Kinesiology'
+  'Kinesiology',
+  'Nursing'
 ] as const;
 
 export type Major = typeof SUPPORTED_MAJORS[number];
