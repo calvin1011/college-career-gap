@@ -126,7 +126,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Welcome! </h2>
           <p className="text-gray-600">Sign in to College Career Gap</p>
         </div>
       </CardHeader>
