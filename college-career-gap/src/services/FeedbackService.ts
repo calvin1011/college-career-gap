@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import { User } from '@/types';
 
@@ -45,4 +45,12 @@ export async function updateFeedbackStatus(
     status: newStatus,
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Deletes a feedback submission permanently.
+ */
+export async function deleteFeedback(feedbackId: string): Promise<void> {
+  const feedbackRef = doc(db, 'feedback', feedbackId);
+  await deleteDoc(feedbackRef);
 }

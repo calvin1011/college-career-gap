@@ -6,9 +6,9 @@ import { db } from '@/services/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Lock, CheckCircle, Clock, Circle } from 'lucide-react';
+import { Lock, CheckCircle, Clock, Circle, Trash2 } from 'lucide-react';
 import { isSuperAdmin } from '@/config/superAdmin';
-import { updateFeedbackStatus, FeedbackStatus } from '@/services/FeedbackService';
+import { updateFeedbackStatus, FeedbackStatus, deleteFeedback } from '@/services/FeedbackService';
 import toast from 'react-hot-toast';
 
 // Define a type for the feedback document
@@ -33,6 +33,7 @@ export default function AdminFeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Check if user is super admin
   const isSuperAdminUser = user?.role === 'admin' && isSuperAdmin(user.email);
@@ -67,6 +68,23 @@ export default function AdminFeedbackPage() {
       toast.error('Failed to update feedback status');
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const handleDelete = async (feedbackId: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this feedback? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingId(feedbackId);
+    try {
+      await deleteFeedback(feedbackId);
+      toast.success('Feedback deleted successfully');
+    } catch (error) {
+      console.error('Error deleting feedback:', error);
+      toast.error('Failed to delete feedback');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -246,6 +264,18 @@ export default function AdminFeedbackPage() {
                         Reset to New
                       </Button>
                     )}
+
+                    {/* Delete Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(entry.id)}
+                      disabled={updatingStatus === entry.id || deletingId === entry.id}
+                      className="ml-auto text-red-600 hover:bg-red-50"
+                      loading={deletingId === entry.id}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
