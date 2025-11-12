@@ -73,6 +73,7 @@ function HomePageContent() {
               </p>
               <p className="text-xl md:text-2xl text-gray-600 mb-8 text-balance">
                 <strong>Students</strong>, get curated resources from your professors.
+                <br />
                 <strong>Professors</strong>, share valuable opportunities and guide your students to success.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -84,8 +85,12 @@ function HomePageContent() {
                   <Button
                     size="lg"
                     data-testid="signup-button"
+                    className="relative overflow-hidden animate-pulse hover:animate-none shadow-lg hover:shadow-xl transition-all"
                   >
-                    How To Get Started
+                    <span className="relative z-10 flex items-center gap-2">
+                      How To Get Started
+                    </span>
+                    <span className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 opacity-20 group-hover:opacity-30 transition-opacity"></span>
                   </Button>
                 </Link>
                 <Button
