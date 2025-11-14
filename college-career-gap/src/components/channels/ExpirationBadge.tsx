@@ -12,6 +12,7 @@ interface ExpirationBadgeProps {
 const EXPIRATION_DAYS: Record<string, number | null> = {
   'internship': 7,
   'full-time': 7,
+  'event': 7,
   'graduate': null,
   'undergrad': null,
   'podcast': null,
