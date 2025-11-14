@@ -73,7 +73,7 @@ export default function CleanupLogsPage() {
         <h1 className="text-3xl font-bold mb-2">Automated Cleanup Logs</h1>
         <p className="text-gray-600">
           Expired job postings are automatically removed daily at 2:00 AM.
-          Posts with <span className="font-semibold">internship</span> or <span className="font-semibold">full-time</span> tags expire after 7 days.
+          Posts with <span className="font-semibold">internship</span>, <span className="font-semibold">full-time</span>, or <span className="font-semibold">event</span> tags expire after 7 days.
         </p>
       </div>
 
@@ -84,7 +84,7 @@ export default function CleanupLogsPage() {
           <div>
             <p className="text-sm font-medium text-blue-900">Automatic Cleanup Schedule</p>
             <p className="text-sm text-blue-800 mt-1">
-              The system runs every day at 2:00 AM and removes job/internship posts older than 7 days.
+              The system runs every day at 2:00 AM and removes job/internship/event posts older than 7 days.
               This keeps the channel fresh and ensures students only see current opportunities.
             </p>
           </div>
@@ -193,6 +193,12 @@ export default function CleanupLogsPage() {
                             <p className="font-semibold text-green-700">{log.expiredByTag['full-time']}</p>
                           </div>
                         )}
+                        {log.expiredByTag.event && (
+                          <div className="bg-indigo-50 rounded p-2">
+                            <p className="text-gray-600">Events</p>
+                            <p className="font-semibold text-indigo-700">{log.expiredByTag.event}</p>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -207,7 +213,7 @@ export default function CleanupLogsPage() {
       <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
         <h3 className="font-semibold text-gray-900 mb-2">How It Works</h3>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Posts tagged as <span className="font-mono bg-gray-200 px-1 rounded">internship</span> or <span className="font-mono bg-gray-200 px-1 rounded">full-time</span> expire after 7 days</li>
+          <li>• Posts tagged as <span className="font-mono bg-gray-200 px-1 rounded">internship</span>, <span className="font-mono bg-gray-200 px-1 rounded">full-time</span>, or <span className="font-mono bg-gray-200 px-1 rounded">event</span> expire after 7 days</li>
           <li>• The cleanup runs automatically every day at 2:00 AM</li>
           <li>• Students see expiration badges on posts: &quot;Expires in X days&quot;</li>
           <li>• All other posts (advice, podcasts, etc.) remain permanently</li>

@@ -78,6 +78,11 @@ export function MessageComposer({
     }
   };
 
+  // Check if any expiring tag is selected (internship, full-time, or event)
+  const hasExpiringTag = selectedTags.some(tag =>
+    ['internship', 'full-time', 'event'].includes(tag)
+  );
+
   if (!isAdmin) {
     return (
       <Card className="border-0 md:border rounded-none md:rounded-lg shadow-none md:shadow-lg">
@@ -158,7 +163,7 @@ export function MessageComposer({
             onTagToggle={handleTagToggle}
           />
 
-          {(selectedTags.includes('internship') || selectedTags.includes('full-time')) && (
+          {hasExpiringTag && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Expiration Date <span className="text-gray-500 text-xs">(Optional - defaults to 7 days)</span>
