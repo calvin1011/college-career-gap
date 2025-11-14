@@ -78,7 +78,7 @@ function HomePageContent() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link
-                  href="https://drive.google.com/drive/folders/11PtqFmt5iOkPqN_aqag3Gao6FuDLp_4S?usp=sharing"
+                  href="https://www.youtube.com/playlist?list=PL9_AId-wqYqRPyKgbWaVPa2Q79O70oIzF"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
