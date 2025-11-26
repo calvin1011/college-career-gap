@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Message, MessageTag } from '@/types';
@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { postMessage } from './ChannelService';
 import { TagSelector } from './TagSelector';
 import { useSubChannels } from '@/hooks/useSubChannels';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react';
 
 interface MessageComposerProps {
   channelId: string;
@@ -36,6 +36,10 @@ export function MessageComposer({
   const [expirationDate, setExpirationDate] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // File attachment state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch sub-channels dynamically
   const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
 
@@ -47,9 +51,54 @@ export function MessageComposer({
     );
   };
 
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    // Validate file types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf',
+                          'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`${file.name}: File type not allowed. Only images, PDFs, and Word docs are supported.`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error(`${file.name}: File too large. Maximum size is 5MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove file from selection
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Format file size for display
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !isAdmin) {
+    if (!content.trim() && selectedFiles.length === 0) {
+      toast.error('Please enter a message or attach a file');
+      return;
+    }
+
+    if (!isAdmin) {
       return;
     }
 
@@ -61,7 +110,8 @@ export function MessageComposer({
         content,
         selectedTags,
         selectedSubChannel || undefined,
-        expirationDate || undefined
+        expirationDate || undefined,
+        selectedFiles
       );
 
       onMessagePosted(newMessage);
@@ -69,6 +119,7 @@ export function MessageComposer({
       setSelectedTags([]);
       setSelectedSubChannel('');
       setExpirationDate('');
+      setSelectedFiles([]); // Clear files
       toast.success('Resource shared successfully!');
     } catch (error) {
       console.error('Error posting message:', error);
@@ -149,14 +200,75 @@ export function MessageComposer({
           </div>
         )}
 
-          <textarea
-            className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
-            placeholder="Share a career resource or announcement..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-            disabled={isPosting}
-          />
+          {/* Message textarea with attachment button */}
+          <div className="relative">
+            <textarea
+              className="w-full p-3 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+              placeholder="Share a career resource or announcement..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
+              disabled={isPosting}
+            />
+
+            {/* Attachment button inside textarea */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isPosting}
+              className="absolute right-2 bottom-2 p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+              title="Attach file"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+
+          {/* File preview section */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Attachments ({selectedFiles.length})
+              </label>
+              <div className="space-y-2">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <Paperclip className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {file.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(file.size)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(index)}
+                      className="p-1 hover:bg-red-100 rounded-full transition-colors flex-shrink-0"
+                      disabled={isPosting}
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <TagSelector
             selectedTags={selectedTags}

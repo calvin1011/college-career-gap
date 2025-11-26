@@ -13,6 +13,7 @@ import { MessageContentRenderer } from './MessageContentRenderer';
 import { LinkPreviewCard } from './LinkPreviewCard';
 import { ReactionPanel } from './ReactionPanel';
 import { MessageStats } from './MessageStats';
+import { MessageAttachments } from './MessageAttachments';
 
 // Define the props our new component will accept
 interface MessageItemProps {
@@ -37,13 +38,11 @@ export function MessageItem({
   formatTimestamp,
 }: MessageItemProps) {
 
-  // This is the key fix!
-  // The hook is now called at the top level of a valid React component.
   const viewRef = useMessageViewTracking(message.id, user?.role as 'student' | 'admin');
 
   return (
     <div
-      ref={viewRef} // Attach the ref here
+      ref={viewRef}
       className={`p-3 rounded-lg shadow-sm border-l-4 transition-colors ${
         message.isPinned ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-200'
       }`}
@@ -152,6 +151,10 @@ export function MessageItem({
               preview={message.metadata.links[0]}
               messageId={message.id}
             />
+          )}
+
+          {message.attachments && message.attachments.length > 0 && (
+            <MessageAttachments attachments={message.attachments} />
           )}
 
           {/* Wrapper for reactions and stats */}

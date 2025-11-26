@@ -72,6 +72,16 @@ export interface Message {
   isEdited: boolean;
   editedAt?: Date | Timestamp | FieldValue;
   createdAt: Date | Timestamp | FieldValue;
+  attachments?: MessageAttachment[];
+}
+
+export interface MessageAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  type: 'image' | 'pdf' | 'document';
+  uploadedAt: Date | Timestamp;
 }
 
 export interface LinkPreview {
