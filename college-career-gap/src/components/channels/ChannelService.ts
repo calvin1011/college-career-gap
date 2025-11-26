@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import {Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview, MessageTag} from '@/types';
+import {Channel, Major, SUPPORTED_MAJORS, Message, User, LinkPreview, MessageTag, MessageAttachment} from '@/types';
 import toast from 'react-hot-toast';
 import { db, functions } from '@/services/firebase/config';
 import { sanitizeMessageContent } from '@/utils/validation';
@@ -661,6 +661,56 @@ export async function findChannelBySlug(slug: string): Promise<Channel | null> {
 }
 
 /**
+ * Uploads files to Firebase Storage and returns attachment metadata
+ */
+async function uploadAttachments(
+  channelId: string,
+  messageId: string,
+  files: File[]
+): Promise<MessageAttachment[]> {
+  const attachments: MessageAttachment[] = [];
+
+  for (const file of files) {
+    try {
+      // Create a unique filename: channelId/messageId_timestamp_originalname
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `attachments/${channelId}/${messageId}_${timestamp}_${sanitizedFileName}`;
+
+      const storageRef = ref(storage, storagePath);
+
+      // Upload the file
+      await uploadBytes(storageRef, file);
+
+      // Get the download URL
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Determine file type
+      let fileType: 'image' | 'pdf' | 'document' = 'document';
+      if (file.type.startsWith('image/')) {
+        fileType = 'image';
+      } else if (file.type === 'application/pdf') {
+        fileType = 'pdf';
+      }
+
+      attachments.push({
+        id: `${messageId}_${timestamp}`,
+        name: file.name,
+        url: downloadURL,
+        size: file.size,
+        type: fileType,
+        uploadedAt: new Date(),
+      });
+    } catch (error) {
+      console.error(`Error uploading file ${file.name}:`, error);
+      toast.error(`Failed to upload ${file.name}`);
+    }
+  }
+
+  return attachments;
+}
+
+/**
  * Posts a new message to a channel. (Admin only)
  */
 export async function postMessage(
@@ -670,6 +720,7 @@ export async function postMessage(
   tags: MessageTag[] = [],
   subChannel?: string,
   customExpirationDate?: string,
+  files?: File[]
 ): Promise<Message> {
   const channelRef = doc(db, 'channels', channelId);
   const messagesRef = collection(db, 'messages');
@@ -702,6 +753,14 @@ export async function postMessage(
 
     const newMessageRef = doc(messagesRef);
 
+    // Upload attachments if files are provided
+    let attachments: MessageAttachment[] = [];
+    if (files && files.length > 0) {
+      toast.loading('Uploading attachments...');
+      attachments = await uploadAttachments(channelId, newMessageRef.id, files);
+      toast.dismiss();
+    }
+
     await runTransaction(db, async (transaction: Transaction) => {
       const channelDoc = await transaction.get(channelRef);
       if (!channelDoc.exists()) {
@@ -714,7 +773,7 @@ export async function postMessage(
         authorId: author.uid,
         authorDisplayName: author.displayName,
         content: sanitizedContent,
-        type: url ? 'link' : 'text',
+        type: url ? 'link' : (attachments.length > 0 ? 'media' : 'text'),
         clickCount: 0,
         reactions: {},
         isPinned: false,
@@ -723,6 +782,7 @@ export async function postMessage(
         ...(expiresAt ? { expiresAt } : {}),
         ...(subChannel ? { subChannel } : {}),
         ...(author.avatar ? { authorAvatar: author.avatar } : {}),
+        ...(attachments.length > 0 ? { attachments } : {}),
         metadata: {
           ...(linkPreview ? { links: [linkPreview] } : {}),
           ...(tags.length > 0 ? { tags } : {})

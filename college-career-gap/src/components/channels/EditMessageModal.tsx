@@ -165,9 +165,6 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
               className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isSaving}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to default to 7 days from now
-            </p>
           </div>
         )}
 
