@@ -80,7 +80,7 @@ export function MessageComposer({
 
   // Check if any expiring tag is selected (internship, full-time, or event)
   const hasExpiringTag = selectedTags.some(tag =>
-    ['internship', 'full-time', 'event'].includes(tag)
+    ['internship', 'full-time', 'event', 'scholarship'].includes(tag)
   );
 
   if (!isAdmin) {

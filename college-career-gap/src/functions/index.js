@@ -164,7 +164,7 @@ exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) =
         const messageData = doc.data();
         const channelId = messageData.channelId;
         const tags = messageData.metadata?.tags || [];
-        const expiringTag = tags.find(tag => ['internship', 'full-time'].includes(tag));
+        const expiringTag = tags.find(tag => ['internship', 'full-time', 'scholarship'].includes(tag));
 
         // Track deletion count per channel
         channelUpdates[channelId] = (channelUpdates[channelId] || 0) + 1;

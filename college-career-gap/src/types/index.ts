@@ -89,7 +89,8 @@ export const MESSAGE_TAGS = [
   'advice-tip',
   'internship',
   'full-time',
-  'event'
+  'event',
+  'scholarship'
 ] as const;
 
 export type MessageTag = typeof MESSAGE_TAGS[number];
@@ -130,6 +131,12 @@ export const TAG_CONFIG: Record<MessageTag, { label: string; color: string; bgCo
     color: 'text-green-700',
     bgColor: 'bg-green-100',
     borderColor: 'border-green-400'
+  },
+  'scholarship': {
+    label: 'Scholarship',
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-100',
+    borderColor: 'border-amber-400'
   },
   'event': {
     label: '📅 Event',
