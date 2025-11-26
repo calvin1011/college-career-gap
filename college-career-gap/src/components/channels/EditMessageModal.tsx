@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/Button';
 import { TagSelector } from './TagSelector';
 import toast from 'react-hot-toast';
 import { useSubChannels } from '@/hooks/useSubChannels';
+import { Timestamp } from 'firebase/firestore';
 
 interface EditMessageModalProps {
   message: Message;
   channelName: string;
   onClose: () => void;
-  onSave: (messageId: string, newContent: string, tags: MessageTag[], subChannel?: string) => Promise<void>;
+  onSave: (messageId: string, newContent: string, tags: MessageTag[], subChannel?: string, customExpirationDate?: string) => Promise<void>;
 }
 
 export function EditMessageModal({ message, channelName, onClose, onSave }: EditMessageModalProps) {
@@ -33,6 +34,30 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
     );
   };
 
+  // Check if any expiring tag is selected
+  const hasExpiringTag = selectedTags.some(tag =>
+    ['internship', 'full-time', 'event', 'scholarship'].includes(tag)
+  );
+
+  // Get existing expiration date if it exists
+  const getExistingExpirationDate = () => {
+    if (message.expiresAt) {
+      let date: Date;
+      if (message.expiresAt instanceof Date) {
+        date = message.expiresAt;
+      } else if (message.expiresAt instanceof Timestamp) {
+        date = message.expiresAt.toDate();
+      } else {
+        return '';
+      }
+      // Format to YYYY-MM-DD for input[type="date"]
+      return date.toISOString().split('T')[0];
+    }
+    return '';
+  };
+
+  const [expirationDate, setExpirationDate] = useState<string>(getExistingExpirationDate());
+
   const handleSave = async () => {
     if (!content.trim()) {
       toast.error('Message content cannot be empty');
@@ -43,15 +68,16 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
     const contentChanged = content !== message.content;
     const tagsChanged = JSON.stringify(selectedTags.sort()) !== JSON.stringify((message.metadata?.tags || []).sort());
     const subChannelChanged = selectedSubChannel !== (message.subChannel || '');
+    const expirationChanged = expirationDate !== getExistingExpirationDate();
 
-    if (!contentChanged && !tagsChanged && !subChannelChanged) {
+    if (!contentChanged && !tagsChanged && !subChannelChanged && !expirationChanged) {
       onClose();
       return;
     }
 
     setIsSaving(true);
     try {
-      await onSave(message.id, content, selectedTags, selectedSubChannel || undefined);
+      await onSave(message.id, content, selectedTags, selectedSubChannel || undefined, expirationDate || undefined);
       toast.success('Message updated successfully!');
       onClose();
     } catch {
@@ -124,6 +150,26 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
             onTagToggle={handleTagToggle}
           />
         </div>
+
+        {/* Expiration Date Selector - show when expiring tags are selected */}
+        {hasExpiringTag && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Expiration Date <span className="text-gray-500 text-xs">(Optional - defaults to 7 days)</span>
+            </label>
+            <input
+              type="date"
+              value={expirationDate}
+              onChange={(e) => setExpirationDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isSaving}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Leave empty to default to 7 days from now
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3 mt-6">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>
