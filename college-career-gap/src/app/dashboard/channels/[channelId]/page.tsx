@@ -155,9 +155,10 @@ export default function ChannelPage() {
     messageId: string,
     newContent: string,
     tags: MessageTag[],
-    subChannel?: string
+    subChannel?: string,
+    customExpirationDate?: string
   ) => {
-    await updateMessage(messageId, newContent, tags, subChannel);
+    await updateMessage(messageId, newContent, tags, subChannel, customExpirationDate);
   };
 
   const formatTimestamp = (timestamp: Date | Timestamp | FieldValue): string => {

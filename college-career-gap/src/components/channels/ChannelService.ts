@@ -756,7 +756,8 @@ export async function updateMessage(
   messageId: string,
   newContent: string,
   tags: MessageTag[] = [],
-  subChannel?: string
+  subChannel?: string,
+  customExpirationDate?: string
 ): Promise<void> {
   const messageRef = doc(db, 'messages', messageId);
 
@@ -771,6 +772,19 @@ export async function updateMessage(
       toast.dismiss();
     }
 
+    // Handle expiration date
+    let expiresAt: Date | undefined;
+    const hasExpiringTag = tags.some(tag => ['internship', 'full-time', 'scholarship', 'event'].includes(tag));
+
+    if (hasExpiringTag) {
+      if (customExpirationDate) {
+        expiresAt = new Date(customExpirationDate);
+      } else {
+        expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+      }
+    }
+
     const updateData: { [key: string]: unknown } = {
       content: sanitizedContent,
       isEdited: true,
@@ -782,12 +796,17 @@ export async function updateMessage(
       },
     };
 
-    // Add or remove subChannel based on whether it's provided
     if (subChannel) {
       updateData.subChannel = subChannel;
     } else {
-      // If subChannel is empty, remove it from the document
       updateData.subChannel = null;
+    }
+
+    // Handle expiration date
+    if (expiresAt) {
+      updateData.expiresAt = expiresAt;
+    } else if (!hasExpiringTag) {
+      updateData.expiresAt = null;
     }
 
     await updateDoc(messageRef, updateData);
