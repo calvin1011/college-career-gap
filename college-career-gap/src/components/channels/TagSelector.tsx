@@ -30,6 +30,8 @@ export function TagSelector({ selectedTags, onTagToggle }: TagSelectorProps) {
         return 'bg-green-100 text-green-700 border-green-400';
       case 'event':
         return 'bg-indigo-100 text-indigo-700 border-indigo-400';
+      case 'scholarship':
+        return 'bg-amber-100 text-amber-700 border-amber-400';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-400';
     }

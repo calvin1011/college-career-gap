@@ -675,7 +675,7 @@ export async function postMessage(
   const messagesRef = collection(db, 'messages');
 
   let expiresAt: Date | undefined;
-  const hasExpiringTag = tags.some(tag => ['internship', 'full-time'].includes(tag));
+  const hasExpiringTag = tags.some(tag => ['internship', 'full-time', 'scholarship'].includes(tag));
 
   if (hasExpiringTag) {
     if (customExpirationDate) {
