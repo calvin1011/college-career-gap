@@ -9,12 +9,16 @@ import { auth } from '@/services/firebase/config';
 import { Button } from '@/components/ui/Button';
 import { MessageSquarePlus } from 'lucide-react';
 import { FeedbackModal } from '@/components/feedback/FeedbackModal';
+import { useAnnouncements } from '@/hooks/useAnnouncements';
+import { AnnouncementModal } from '@/components/announcements/AnnouncementModal';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { firebaseUser, loading } = useAuth();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+
+  const { currentAnnouncement, dismissAnnouncement } = useAnnouncements();
 
   useEffect(() => {
     // Redirect unauthenticated users to the home page
@@ -92,6 +96,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Feedback Modal */}
       {isFeedbackModalOpen && (
         <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} />
+      )}
+
+      {/* Announcement Modal */}
+      {currentAnnouncement && (
+        <AnnouncementModal
+          announcement={currentAnnouncement}
+          onDismiss={dismissAnnouncement}
+        />
       )}
     </div>
   );
