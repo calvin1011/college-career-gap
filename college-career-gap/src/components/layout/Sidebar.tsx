@@ -9,7 +9,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShieldCheck } from 'lucide-react';
 import { isSuperAdmin } from '@/config/superAdmin';
-import { Settings } from 'lucide-react';
+import { Settings, Sparkles } from 'lucide-react';
 
 // Define the props interface
 interface SidebarProps {
@@ -145,7 +145,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span>Profile Settings</span>
             </Link>
 
-            {user?.role === 'admin' && (
+            {user?.role === 'admin' && isSuperAdmin(user.email) && (
               <Link
                 href="/dashboard/admin/subchannels"
                 className={cn(
@@ -160,6 +160,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             {user?.role === 'admin' && isSuperAdmin(user.email) && (
               <>
+
+                <Link
+                  href="/dashboard/admin/announcements"
+                  className={cn(
+                    'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                    { 'bg-green-600 text-white': pathname === '/dashboard/admin/announcements' }
+                  )}
+                >
+                  <Sparkles className="w-5 h-5 mr-3 flex-shrink-0" />
+                  <span>Announcements</span>
+                </Link>
+
                 <Link
                   href="/dashboard/admin/feedback"
                   className={cn(

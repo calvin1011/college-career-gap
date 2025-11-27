@@ -16,6 +16,7 @@ export interface User {
   createdAt: Date | Timestamp | FieldValue;
   lastActiveAt: Date | Timestamp | FieldValue;
   notificationTokens?: string[];
+  dismissedAnnouncements?: string[];
   profile: {
     avatar?: string;
     bio?: string;
@@ -46,6 +47,16 @@ export interface Channel {
   members: string[];
   createdAt: Date | Timestamp | FieldValue;
   updatedAt: Date | Timestamp | FieldValue;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  targetAudience: ('student' | 'admin')[];
+  isActive: boolean;
+  createdAt: Date | Timestamp | FieldValue;
+  priority?: number;
 }
 
 export interface Message {
