@@ -156,9 +156,23 @@ export default function ChannelPage() {
     newContent: string,
     tags: MessageTag[],
     subChannel?: string,
-    customExpirationDate?: string
+    customExpirationDate?: string,
+    newFiles?: File[],
+    attachmentsToKeep?: any[]
   ) => {
-    await updateMessage(messageId, newContent, tags, subChannel, customExpirationDate);
+    if (!channel) return;
+
+    // Pass channel.id and the new file arrays
+    await updateMessage(
+      messageId,
+      channel.id,
+      newContent,
+      tags,
+      subChannel,
+      customExpirationDate,
+      newFiles,
+      attachmentsToKeep
+    );
   };
 
   const formatTimestamp = (timestamp: Date | Timestamp | FieldValue): string => {

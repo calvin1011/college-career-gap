@@ -814,10 +814,13 @@ export async function postMessage(
  */
 export async function updateMessage(
   messageId: string,
+  channelId: string,
   newContent: string,
   tags: MessageTag[] = [],
   subChannel?: string,
-  customExpirationDate?: string
+  customExpirationDate?: string,
+  newFiles: File[] = [],
+  attachmentsToKeep: MessageAttachment[] = []
 ): Promise<void> {
   const messageRef = doc(db, 'messages', messageId);
 
@@ -832,7 +835,19 @@ export async function updateMessage(
       toast.dismiss();
     }
 
-    // Handle expiration date
+    // Handle new uploads
+    let newAttachments: MessageAttachment[] = [];
+    if (newFiles.length > 0) {
+      toast.loading('Uploading new attachments...');
+      // Reuses the existing uploadAttachments helper in this file
+      newAttachments = await uploadAttachments(channelId, messageId, newFiles);
+      toast.dismiss();
+    }
+
+    // Combine kept attachments with newly uploaded ones
+    const finalAttachments = [...attachmentsToKeep, ...newAttachments];
+
+    // Handle expiration date logic
     let expiresAt: Date | undefined;
     const hasExpiringTag = tags.some(tag => ['internship', 'full-time', 'scholarship', 'event'].includes(tag));
 
@@ -840,6 +855,9 @@ export async function updateMessage(
       if (customExpirationDate) {
         expiresAt = new Date(customExpirationDate);
       } else {
+        // Only set default if it wasn't already set, or if we want to reset it?
+        // For edits, usually we keep existing unless tag changed.
+        // Simple logic: if tag present and date provided, use it.
         expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
       }
@@ -849,7 +867,9 @@ export async function updateMessage(
       content: sanitizedContent,
       isEdited: true,
       editedAt: serverTimestamp(),
-      type: url ? 'link' : 'text',
+      // Update type: if it has attachments, it's media. Otherwise link or text.
+      type: finalAttachments.length > 0 ? 'media' : (url ? 'link' : 'text'),
+      attachments: finalAttachments,
       metadata: {
         ...(linkPreview ? { links: [linkPreview] } : {}),
         ...(tags.length > 0 ? { tags } : {})
@@ -862,7 +882,7 @@ export async function updateMessage(
       updateData.subChannel = null;
     }
 
-    // Handle expiration date
+    // Update expiration
     if (expiresAt) {
       updateData.expiresAt = expiresAt;
     } else if (!hasExpiringTag) {
