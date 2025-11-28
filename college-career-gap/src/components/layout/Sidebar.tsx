@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {LogOut, Home, School, CalendarDays, User, Users, X, Trash2} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -10,6 +10,8 @@ import Image from 'next/image';
 import { ShieldCheck } from 'lucide-react';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { Settings, Sparkles } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/services/firebase/config';
 
 // Define the props interface
 interface SidebarProps {
@@ -17,16 +19,39 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-// Update the function to accept the props
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { signOut, user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [isAdminOfAnyChannel, setIsAdminOfAnyChannel] = useState(false);
 
   const majorSlug = user?.major ? user.major.toLowerCase().replace(/\s/g, '-') : '';
   const isMemberOfMajorChannel = user?.major && user.joinedChannels.includes(majorSlug);
 
   const dashboardHref = isMemberOfMajorChannel ? `/dashboard/channels/${majorSlug}` : '/dashboard';
+
+  // Check if user is admin of ANY channel
+  useEffect(() => {
+    async function checkAdminStatus() {
+      if (!user) {
+        setIsAdminOfAnyChannel(false);
+        return;
+      }
+
+      try {
+        const channelsRef = collection(db, 'channels');
+        const q = query(channelsRef, where('admins', 'array-contains', user.uid));
+        const snapshot = await getDocs(q);
+
+        setIsAdminOfAnyChannel(snapshot.size > 0);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdminOfAnyChannel(false);
+      }
+    }
+
+    checkAdminStatus();
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -145,7 +170,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span>Profile Settings</span>
             </Link>
 
-            {user?.role === 'admin' && isSuperAdmin(user.email) && (
+            {/* Show "Manage Concentrations" if user is admin of ANY channel */}
+            {isAdminOfAnyChannel && (
               <Link
                 href="/dashboard/admin/subchannels"
                 className={cn(
@@ -158,7 +184,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </Link>
             )}
 
-            {user?.role === 'admin' && isSuperAdmin(user.email) && (
+            {/* Only show these for super admins */}
+            {isSuperAdmin(user?.email || '') && (
               <>
 
                 <Link

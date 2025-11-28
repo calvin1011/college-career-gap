@@ -18,7 +18,8 @@ export function AdminChannelSwitcher() {
 
   useEffect(() => {
     async function fetchAdminChannels() {
-      if (!user || user.role !== 'admin') {
+      // CHANGE 1: Remove the check for user.role !== 'admin'
+      if (!user) {
         setLoading(false);
         return;
       }
@@ -27,8 +28,8 @@ export function AdminChannelSwitcher() {
         // Get all channels where this user is in the admins array
         const channelsRef = collection(db, 'channels');
         const q = query(
-          channelsRef,
-          where('admins', 'array-contains', user.uid)
+            channelsRef,
+            where('admins', 'array-contains', user.uid)
         );
 
         const snapshot = await getDocs(q);
@@ -44,12 +45,11 @@ export function AdminChannelSwitcher() {
         setLoading(false);
       }
     }
-
     fetchAdminChannels();
   }, [user]);
 
   // Don't show if not admin or only has one channel
-  if (!user || user.role !== 'admin' || adminChannels.length <= 1 || loading) {
+  if (!user || adminChannels.length <= 1 || loading) {
     return null;
   }
 
