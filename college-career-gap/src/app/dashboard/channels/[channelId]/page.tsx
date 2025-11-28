@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
-import { Channel, Message, MessageTag, hasSubChannels } from '@/types';
+import { Channel, Message, MessageTag, hasSubChannels, MessageAttachment } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock, MessageCircle, Sparkles, User, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -58,7 +58,6 @@ export default function ChannelPage() {
   }, [user]);
 
   const isOnPrimaryMajor = channel?.name === user?.major;
-  const isOnSecondMajor = channel?.name === user?.secondMajor;
   const activeSubChannel = isOnPrimaryMajor ? user?.subChannel : user?.secondMajorSubChannel;
 
   const filteredMessages = useMemo(() => {
@@ -158,7 +157,7 @@ export default function ChannelPage() {
     subChannel?: string,
     customExpirationDate?: string,
     newFiles?: File[],
-    attachmentsToKeep?: any[]
+    attachmentsToKeep?: MessageAttachment[]
   ) => {
     if (!channel) return;
 

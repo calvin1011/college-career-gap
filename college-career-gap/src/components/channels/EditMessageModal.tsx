@@ -42,7 +42,7 @@ export function EditMessageModal({ message, channelName, onClose, onSave }: Edit
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch sub-channels dynamically
-  const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
+  const { subChannels, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
 
   const handleTagToggle = (tag: MessageTag) => {
     setSelectedTags(prev =>
