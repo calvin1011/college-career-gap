@@ -15,7 +15,6 @@ import { ReactionPanel } from './ReactionPanel';
 import { MessageStats } from './MessageStats';
 import { MessageAttachments } from './MessageAttachments';
 
-// Define the props our new component will accept
 interface MessageItemProps {
   message: Message;
   user: User | null;
@@ -59,20 +58,20 @@ export function MessageItem({
         </div>
       )}
 
-      {/* Expiration badge - shows "Expires in X days" */}
+      {/* Expiration badge */}
       <div className="mb-1.5">
         <ExpirationBadge message={message} />
       </div>
 
+      {/* Tags - Now showing ALL tags including internship/full-time */}
       {message.metadata?.tags && message.metadata.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-1.5">
-          {message.metadata.tags
-            .filter((tag) => tag !== 'internship' && tag !== 'full-time') // Hide expiring tags
-            .map((tag) => (
-              <TagBadge key={tag} tag={tag as MessageTag} />
-            ))}
+          {message.metadata.tags.map((tag) => (
+            <TagBadge key={tag} tag={tag as MessageTag} />
+          ))}
         </div>
       )}
+
       <div className="flex items-start space-x-2">
         <div className="relative w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
           {message.authorId === 'system' ? (

@@ -9,6 +9,7 @@ import { postMessage } from './ChannelService';
 import { TagSelector } from './TagSelector';
 import { useSubChannels } from '@/hooks/useSubChannels';
 import { ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react';
+import { EmojiPicker } from './EmojiPicker';
 
 interface MessageComposerProps {
   channelId: string;
@@ -49,6 +50,10 @@ export function MessageComposer({
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setContent(prev => prev + emoji);
   };
 
   // Handle file selection
@@ -200,10 +205,10 @@ export function MessageComposer({
           </div>
         )}
 
-          {/* Message textarea with attachment button */}
+          {/* Message textarea with emoji and attachment buttons */}
           <div className="relative">
             <textarea
-              className="w-full p-3 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+              className="w-full p-3 pr-24 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
               placeholder="Share a career resource or announcement..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -211,16 +216,20 @@ export function MessageComposer({
               disabled={isPosting}
             />
 
-            {/* Attachment button inside textarea */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isPosting}
-              className="absolute right-2 bottom-2 p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
-              title="Attach file"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+            {/* Actions area inside textarea */}
+            <div className="absolute right-2 bottom-2 flex items-center gap-1">
+              <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isPosting}
+                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                title="Attach file"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+            </div>
 
             {/* Hidden file input */}
             <input

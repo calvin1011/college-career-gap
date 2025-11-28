@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { findChannelBySlug, togglePinMessage, deleteMessage } from '@/components/channels/ChannelService';
-import { Channel, Message, MessageTag, hasSubChannels } from '@/types';
+import { Channel, Message, MessageTag, hasSubChannels, MessageAttachment } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Users, Lock, MessageCircle, Sparkles, User, Share2, Bell, BellOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -58,7 +58,6 @@ export default function ChannelPage() {
   }, [user]);
 
   const isOnPrimaryMajor = channel?.name === user?.major;
-  const isOnSecondMajor = channel?.name === user?.secondMajor;
   const activeSubChannel = isOnPrimaryMajor ? user?.subChannel : user?.secondMajorSubChannel;
 
   const filteredMessages = useMemo(() => {
@@ -156,9 +155,23 @@ export default function ChannelPage() {
     newContent: string,
     tags: MessageTag[],
     subChannel?: string,
-    customExpirationDate?: string
+    customExpirationDate?: string,
+    newFiles?: File[],
+    attachmentsToKeep?: MessageAttachment[]
   ) => {
-    await updateMessage(messageId, newContent, tags, subChannel, customExpirationDate);
+    if (!channel) return;
+
+    // Pass channel.id and the new file arrays
+    await updateMessage(
+      messageId,
+      channel.id,
+      newContent,
+      tags,
+      subChannel,
+      customExpirationDate,
+      newFiles,
+      attachmentsToKeep
+    );
   };
 
   const formatTimestamp = (timestamp: Date | Timestamp | FieldValue): string => {

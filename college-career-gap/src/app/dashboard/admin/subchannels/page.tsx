@@ -28,7 +28,7 @@ export default function ManageSubChannelsPage() {
     index: number;
     count: number;
   } | null>(null);
-  const [studentCounts, setStudentCounts] = useState<StudentCount>({});
+  const [studentCounts] = useState<StudentCount>({});
 
   const isAdmin = user?.role === 'admin';
   const majorSlug = user?.major?.toLowerCase().replace(/\s/g, '-') || '';
@@ -96,7 +96,7 @@ export default function ManageSubChannelsPage() {
     if (studentsInConcentration > 0) {
       setShowDeleteWarning({ subChannel, index, count: studentsInConcentration });
     } else {
-      confirmRemove(subChannel);
+      await confirmRemove(subChannel);
     }
   };
 
