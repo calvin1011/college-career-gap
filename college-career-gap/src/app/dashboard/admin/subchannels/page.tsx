@@ -10,6 +10,7 @@ import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/fi
 import { db } from '@/services/firebase/config';
 import toast from 'react-hot-toast';
 import { Channel } from '@/types';
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface StudentCount {
   [subChannel: string]: number;
@@ -30,12 +31,35 @@ export default function ManageSubChannelsPage() {
   } | null>(null);
   const [studentCounts] = useState<StudentCount>({});
 
-  const isAdmin = user?.role === 'admin';
-  const majorSlug = user?.major?.toLowerCase().replace(/\s/g, '-') || '';
+  const pathname = usePathname();
+
+  const searchParams = useSearchParams();
+
+  const isGlobalAdmin = user?.role === 'admin';
+
+  const getCurrentChannelSlug = () => {
+    // Check URL query param first
+    const paramChannel = searchParams.get('channel');
+    if (paramChannel) return paramChannel;
+
+    // Check path (fallback)
+    const channelMatch = pathname.match(/\/channels\/([^\/]+)/);
+    if (channelMatch) {
+      return channelMatch[1];
+    }
+
+    // Fallback to user's major
+    return user?.major?.toLowerCase().replace(/\s/g, '-') || '';
+  };
+
+  const majorSlug = getCurrentChannelSlug();
+
+  // Check if user is admin of THIS channel
+  const isAdminOfThisChannel = channel?.admins?.includes(user?.uid || '') || false;
 
   // Real-time listener for channel data
   useEffect(() => {
-    if (!isAdmin || !majorSlug) {
+    if (!majorSlug) {
       setLoading(false);
       return;
     }
@@ -49,15 +73,18 @@ export default function ManageSubChannelsPage() {
     });
 
     return () => unsubscribe();
-  }, [isAdmin, majorSlug]);
+  }, [user, majorSlug]);
+
+  const isChannelAdmin = channel?.admins?.includes(user?.uid || '') || false;
+  const hasPermission = isGlobalAdmin || isChannelAdmin;
 
   // Real-time listener for student counts (optional - for showing how many students per concentration)
   useEffect(() => {
-    if (!isAdmin || !majorSlug) return;
+    if (!majorSlug) return;
 
     // This would require querying users collection - simplified for now
     // In production, you might want to denormalize this data or use Cloud Functions
-  }, [isAdmin, majorSlug]);
+  }, [majorSlug]);
 
   const handleAddSubChannel = async () => {
     if (!newSubChannel.trim()) {
@@ -181,13 +208,13 @@ export default function ManageSubChannelsPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!loading && !hasPermission) {
     return (
       <Card className="max-w-md mx-auto text-center p-8">
         <CardContent>
           <Lock size={48} className="mx-auto text-red-500 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">This page is for administrators only.</p>
+          <p className="text-gray-600">You must be an admin of this channel to manage concentrations.</p>
         </CardContent>
       </Card>
     );

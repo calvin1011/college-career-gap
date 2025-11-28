@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {LogOut, Home, School, CalendarDays, User, Users, X, Trash2} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -10,6 +10,8 @@ import Image from 'next/image';
 import { ShieldCheck } from 'lucide-react';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { Settings, Sparkles } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/services/firebase/config';
 
 // Define the props interface
 interface SidebarProps {
@@ -17,16 +19,48 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-// Update the function to accept the props
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { signOut, user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [isAdminOfAnyChannel, setIsAdminOfAnyChannel] = useState(false);
+
+  // Parse current slug from URL if we are in a channel view
+  const currentChannelMatch = pathname.match(/\/channels\/([^\/]+)/);
+  const currentChannelSlug = currentChannelMatch ? currentChannelMatch[1] : null;
+
+  // Build the Manage URL: Attach ?channel=slug if we know where we are
+  const manageConcentrationsHref = currentChannelSlug
+    ? `/dashboard/admin/subchannels?channel=${currentChannelSlug}`
+    : '/dashboard/admin/subchannels';
 
   const majorSlug = user?.major ? user.major.toLowerCase().replace(/\s/g, '-') : '';
   const isMemberOfMajorChannel = user?.major && user.joinedChannels.includes(majorSlug);
 
   const dashboardHref = isMemberOfMajorChannel ? `/dashboard/channels/${majorSlug}` : '/dashboard';
+
+  // Check if user is admin of ANY channel
+  useEffect(() => {
+    async function checkAdminStatus() {
+      if (!user) {
+        setIsAdminOfAnyChannel(false);
+        return;
+      }
+
+      try {
+        const channelsRef = collection(db, 'channels');
+        const q = query(channelsRef, where('admins', 'array-contains', user.uid));
+        const snapshot = await getDocs(q);
+
+        setIsAdminOfAnyChannel(snapshot.size > 0);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdminOfAnyChannel(false);
+      }
+    }
+
+    checkAdminStatus();
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -145,12 +179,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span>Profile Settings</span>
             </Link>
 
-            {user?.role === 'admin' && isSuperAdmin(user.email) && (
+            {/* Show "Manage Concentrations" if user is admin of ANY channel */}
+            {isAdminOfAnyChannel && (
               <Link
-                href="/dashboard/admin/subchannels"
+                href={manageConcentrationsHref}
                 className={cn(
                   'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                  { 'bg-green-600 text-white': pathname === '/dashboard/admin/subchannels' }
+                  { 'bg-green-600 text-white': pathname.includes('/dashboard/admin/subchannels') }
                 )}
               >
                 <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
@@ -158,7 +193,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </Link>
             )}
 
-            {user?.role === 'admin' && isSuperAdmin(user.email) && (
+            {/* Only show these for super admins */}
+            {isSuperAdmin(user?.email || '') && (
               <>
 
                 <Link

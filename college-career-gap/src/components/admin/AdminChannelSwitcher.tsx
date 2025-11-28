@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'; // Added useSearchParams
 import { ChevronDown, Check } from 'lucide-react';
 import { Channel } from '@/types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -12,13 +12,14 @@ export function AdminChannelSwitcher() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [adminChannels, setAdminChannels] = useState<Channel[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchAdminChannels() {
-      if (!user || user.role !== 'admin') {
+      if (!user) {
         setLoading(false);
         return;
       }
@@ -26,9 +27,11 @@ export function AdminChannelSwitcher() {
       try {
         // Get all channels where this user is in the admins array
         const channelsRef = collection(db, 'channels');
+        // Allow if UID is in admins array OR if user is global admin (optional, based on your preference)
+        // Sticking to your requirement: check if they are explicitly set as admin
         const q = query(
-          channelsRef,
-          where('admins', 'array-contains', user.uid)
+            channelsRef,
+            where('admins', 'array-contains', user.uid)
         );
 
         const snapshot = await getDocs(q);
@@ -44,21 +47,28 @@ export function AdminChannelSwitcher() {
         setLoading(false);
       }
     }
-
     fetchAdminChannels();
   }, [user]);
 
   // Don't show if not admin or only has one channel
-  if (!user || user.role !== 'admin' || adminChannels.length <= 1 || loading) {
+  if (!user || adminChannels.length <= 1 || loading) {
     return null;
   }
 
-  // Determine current channel from pathname
-  const currentChannelSlug = pathname.split('/channels/')[1];
+  const paramChannel = searchParams.get('channel');
+  const pathChannel = pathname.split('/channels/')[1];
+  const currentChannelSlug = paramChannel || pathChannel;
+
   const currentChannel = adminChannels.find(ch => ch.slug === currentChannelSlug);
 
   const handleChannelSwitch = (channel: Channel) => {
-    router.push(`/dashboard/channels/${channel.slug}`);
+    // If we are on the Manage Subchannels page, keep us there but switch the param
+    if (pathname.includes('/admin/subchannels')) {
+        router.push(`/dashboard/admin/subchannels?channel=${channel.slug}`);
+    } else {
+        // Otherwise go to the channel feed
+        router.push(`/dashboard/channels/${channel.slug}`);
+    }
     setIsOpen(false);
   };
 
@@ -83,13 +93,10 @@ export function AdminChannelSwitcher() {
 
       {isOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-
-          {/* Dropdown */}
           <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
             <div className="p-2">
               <p className="text-xs font-semibold text-gray-500 uppercase px-2 py-1 mb-1">

@@ -127,8 +127,12 @@ export default function ChannelPage() {
   const isMember = user?.joinedChannels.includes(channel?.id || '');
   const isChannelAdmin = channel?.admins?.includes(user?.uid || '') || false;
 
-  // Admins in the channel's admins array OR members can access
-  const hasAccess = isChannelAdmin || isMember;
+  const isGlobalAdmin = user?.role === 'admin';
+
+  const canPost = isGlobalAdmin || isChannelAdmin;
+
+  // Admins in the channel's admins array OR members can access view
+  const hasAccess = isChannelAdmin || isMember || isGlobalAdmin;
 
   if (loading) {
     return (
@@ -321,7 +325,7 @@ export default function ChannelPage() {
       </div>
 
       {/* Message Composer for Admins */}
-      {isAdmin && user && (
+      {canPost && user && (
         <div className="flex-shrink-0 border-t border-gray-200 bg-white">
           <MessageComposer
             channelId={channel.id}
@@ -331,7 +335,7 @@ export default function ChannelPage() {
               displayName: user.displayName,
               avatar: user.profile?.avatar
             }}
-            isAdmin={isAdmin}
+            isAdmin={canPost}
             onMessagePosted={() => {}}
           />
         </div>
