@@ -10,7 +10,7 @@ import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/fi
 import { db } from '@/services/firebase/config';
 import toast from 'react-hot-toast';
 import { Channel } from '@/types';
-import {usePathname} from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface StudentCount {
   [subChannel: string]: number;
@@ -33,16 +33,22 @@ export default function ManageSubChannelsPage() {
 
   const pathname = usePathname();
 
+  const searchParams = useSearchParams();
+
   const isGlobalAdmin = user?.role === 'admin';
 
   const getCurrentChannelSlug = () => {
-    // Check if we're viewing from a specific channel
+    // Check URL query param first
+    const paramChannel = searchParams.get('channel');
+    if (paramChannel) return paramChannel;
+
+    // Check path (fallback)
     const channelMatch = pathname.match(/\/channels\/([^\/]+)/);
     if (channelMatch) {
       return channelMatch[1];
     }
 
-    // Otherwise use user's major
+    // Fallback to user's major
     return user?.major?.toLowerCase().replace(/\s/g, '-') || '';
   };
 

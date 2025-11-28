@@ -25,6 +25,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const [isAdminOfAnyChannel, setIsAdminOfAnyChannel] = useState(false);
 
+  // Parse current slug from URL if we are in a channel view
+  const currentChannelMatch = pathname.match(/\/channels\/([^\/]+)/);
+  const currentChannelSlug = currentChannelMatch ? currentChannelMatch[1] : null;
+
+  // Build the Manage URL: Attach ?channel=slug if we know where we are
+  const manageConcentrationsHref = currentChannelSlug
+    ? `/dashboard/admin/subchannels?channel=${currentChannelSlug}`
+    : '/dashboard/admin/subchannels';
+
   const majorSlug = user?.major ? user.major.toLowerCase().replace(/\s/g, '-') : '';
   const isMemberOfMajorChannel = user?.major && user.joinedChannels.includes(majorSlug);
 
@@ -173,10 +182,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             {/* Show "Manage Concentrations" if user is admin of ANY channel */}
             {isAdminOfAnyChannel && (
               <Link
-                href="/dashboard/admin/subchannels"
+                href={manageConcentrationsHref}
                 className={cn(
                   'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
-                  { 'bg-green-600 text-white': pathname === '/dashboard/admin/subchannels' }
+                  { 'bg-green-600 text-white': pathname.includes('/dashboard/admin/subchannels') }
                 )}
               >
                 <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
