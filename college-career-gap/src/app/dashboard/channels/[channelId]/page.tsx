@@ -125,7 +125,10 @@ export default function ChannelPage() {
   const loading = loadingChannel || loadingMessages;
   const isAdmin = user?.role === 'admin';
   const isMember = user?.joinedChannels.includes(channel?.id || '');
-  const hasAccess = isMember;
+  const isChannelAdmin = channel?.admins?.includes(user?.uid || '') || false;
+
+  // Admins in the channel's admins array OR members can access
+  const hasAccess = isChannelAdmin || isMember;
 
   if (loading) {
     return (

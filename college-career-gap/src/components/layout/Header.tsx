@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { AdminChannelSwitcher } from '@/components/admin/AdminChannelSwitcher';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -19,7 +20,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <Menu className="w-6 h-6" />
       </button>
 
-      <div className="flex-1">
+      <div className="flex-1 flex justify-end">
+        <AdminChannelSwitcher />
       </div>
     </header>
   );
