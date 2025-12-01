@@ -155,6 +155,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
               )}
             </div>
+
+            {/* Professor Admin Request Link */}
+            <div className="mt-3 text-center">
+              <Link
+                href="/request-admin"
+                className="inline-flex items-center text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
+                Professors: Request admin access here
+              </Link>
+            </div>
+
           </div>
 
           <nav className="px-4 py-4 space-y-1">
