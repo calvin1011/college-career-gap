@@ -35,8 +35,7 @@ export default function AdminApprovalsPage() {
 
   const APPROVAL_TEMPLATE = `Hi [Name],
 
-  Great news! You've been approved as an administrator for the [Channel Name] channel on College Career Gap. Please
-  make sure that you verified your email prior to account creation.
+  Great news! You've been approved as an administrator for the [Channel Name] channel on College Career Gap. Please make sure that you verified your email prior to account creation.
   
   As a channel admin, you can now:
   • Post career opportunities and resources
@@ -46,7 +45,7 @@ export default function AdminApprovalsPage() {
   
   Log in with your .edu email to start posting resources for your students.
   
-  If you have any questions, feel free to reach out using the feedback icon to the bottom right.`;
+  If you have any questions, feel free to reach out using the feedback icon to the bottom right of College Career Gap's website.`;
 
   const [manualEmail, setManualEmail] = useState({
     to: '',
