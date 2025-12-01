@@ -37,25 +37,6 @@ export default function RequestAdminPage() {
     try {
       const channelSlug = formData.channel.toLowerCase().replace(/\s/g, '-');
 
-      // Check if this email already has a pending or approved request
-      const requestsRef = collection(db, 'adminRequests');
-      const q = query(requestsRef, where('email', '==', formData.email.toLowerCase()));
-      const existingRequests = await getDocs(q);
-
-      if (!existingRequests.empty) {
-        const existingRequest = existingRequests.docs[0].data();
-        if (existingRequest.status === 'pending') {
-          toast.error('You already have a pending request. Please wait for approval.');
-          setLoading(false);
-          return;
-        }
-        if (existingRequest.status === 'approved') {
-          toast.error('You are already approved! Please sign up and log in.');
-          setLoading(false);
-          return;
-        }
-      }
-
       await addDoc(collection(db, 'adminRequests'), {
         name: formData.name.trim(),
         email: formData.email.toLowerCase().trim(),
