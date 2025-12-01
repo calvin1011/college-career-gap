@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { collection, query, onSnapshot, doc, updateDoc, arrayUnion, writeBatch, Timestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, arrayUnion, writeBatch, Timestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import { isSuperAdmin } from '@/config/superAdmin';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, Mail, User } from 'lucide-react';
+import { CheckCircle, XCircle, Mail, User, Trash2 } from 'lucide-react';
 
 interface AdminRequest {
   id: string;
@@ -99,6 +99,24 @@ export default function AdminApprovalsPage() {
     } catch (error) {
       console.error('Error rejecting request:', error);
       toast.error('Failed to reject request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteRequest = async (request: AdminRequest) => {
+    // Confirm before deleting
+    if (!window.confirm(`Are you sure you want to remove the record for ${request.name}? This does not revoke their admin access, only this request log.`)) {
+      return;
+    }
+
+    setActionLoading(request.id);
+    try {
+      await deleteDoc(doc(db, 'adminRequests', request.id));
+      toast.success('Request record deleted');
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error('Failed to delete request');
     } finally {
       setActionLoading(null);
     }
@@ -258,6 +276,17 @@ export default function AdminApprovalsPage() {
                     >
                       <Mail className="w-4 h-4 mr-1" />
                       Send Email
+                    </Button>
+
+                    <Button
+                      onClick={() => handleDeleteRequest(request)}
+                      disabled={actionLoading === request.id}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-100 hover:text-red-700"
+                      title="Delete this record"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardContent>
