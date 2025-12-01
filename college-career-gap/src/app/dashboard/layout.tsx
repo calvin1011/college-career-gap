@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import { auth } from '@/services/firebase/config';
@@ -11,6 +11,7 @@ import { MessageSquarePlus } from 'lucide-react';
 import { FeedbackModal } from '@/components/feedback/FeedbackModal';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { AnnouncementModal } from '@/components/announcements/AnnouncementModal';
+import Link from "next/link";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { firebaseUser, loading } = useAuth();
@@ -50,6 +51,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-gray-600 mt-2">
             A verification link has been sent to <strong>{firebaseUser.email}</strong>. Please check your inbox/spam and click the link to continue.
           </p>
+
+          {/* Professor Admin Request Link */}
+          <div className="text-center py-2">
+            <Link
+              href="/request-admin"
+              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            >
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+              </svg>
+              Professors: Request admin access here
+            </Link>
+          </div>
 
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-left">
             <p className="text-sm text-yellow-800 font-medium">
