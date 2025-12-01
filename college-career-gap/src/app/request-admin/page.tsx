@@ -212,7 +212,7 @@ export default function RequestAdminPage() {
 
           {/* Help Text */}
           <div className="mt-6 text-center text-gray-400 text-sm">
-            <p>Not Signed Up Yet? <Link href="/" className="text-blue-400 hover:underline">Sign up here</Link></p>
+            <p>Go back To <Link href="/" className="text-blue-400 hover:underline">Previous Page</Link></p>
           </div>
         </div>
       </div>
