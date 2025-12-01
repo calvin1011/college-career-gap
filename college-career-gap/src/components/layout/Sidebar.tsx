@@ -198,6 +198,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <>
 
                 <Link
+                  href="/dashboard/admin/approvals"
+                  className={cn(
+                    'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                    { 'bg-green-600 text-white': pathname === '/dashboard/admin/approvals' }
+                  )}
+                >
+                  <ShieldCheck className="w-5 h-5 mr-3 flex-shrink-0" />
+                  <span>Admin Approvals</span>
+                </Link>
+
+                <Link
                   href="/dashboard/admin/announcements"
                   className={cn(
                     'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
