@@ -47,8 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await resend.emails.send({
-      // Use your verified domain here (e.g. notifications@collegecareergap.com)
-      from: 'College Career Gap <notifications@your-verified-domain.com>',
+      from: 'College Career Gap <no-reply@collegecareergap.com>',
       to: to,
       subject: subject,
       html: getEmailHTML(message),
