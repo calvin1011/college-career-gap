@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Helper to generate the HTML wrapper (keeps your branding consistent)
+// Helper to generate the HTML wrapper
 function getEmailHTML(content: string): string {
   // Convert newlines to <br> so the formatting is preserved
   const formattedContent = content.replace(/\n/g, '<br>');
@@ -30,7 +30,7 @@ function getEmailHTML(content: string): string {
             <p>${formattedContent}</p>
           </div>
           <div class="footer">
-            <p>Sent via College Career Gap Admin Dashboard.</p>
+            <p>Sent via College Career Gap.</p>
           </div>
         </div>
       </body>

@@ -50,7 +50,7 @@ export default function AdminApprovalsPage() {
 
   const [manualEmail, setManualEmail] = useState({
     to: '',
-    subject: 'Admin Access Granted - College Career Gap',
+    subject: 'Admin Access Granted',
     message: APPROVAL_TEMPLATE
   });
 
