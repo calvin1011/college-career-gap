@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Send email
     const { data, error } = await resend.emails.send({
-      from: 'College Career Gap <onboarding@resend.dev>',
+      from: 'College Career Gap <notifications@collegecareergap.com>',
       to: professorEmail,
       subject: `Admin Access Granted - ${channelName}`,
       html: getAdminApprovedEmailHTML(professorName, channelName),
