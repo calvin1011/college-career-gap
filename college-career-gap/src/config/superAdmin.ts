@@ -1,4 +1,3 @@
-// Create new file: src/config/superAdmin.ts
 
 /**
  * Super Admin Configuration
@@ -6,7 +5,14 @@
  */
 export const SUPER_ADMIN_EMAILS = [
   'calvinssendawula@gmail.com',
-  // Add more super admin emails here if needed
+];
+
+/**
+ * Test/Dummy Student Accounts
+ * These emails bypass the .edu requirement but get student access
+ */
+export const TEST_STUDENT_EMAILS = [
+  'collegecareerstudent@gmail.com',
 ];
 
 /**
@@ -20,5 +26,5 @@ export function isSuperAdmin(email: string): boolean {
  * Check if an email should bypass .edu validation
  */
 export function bypassEduValidation(email: string): boolean {
-  return isSuperAdmin(email);
+  return isSuperAdmin(email) || TEST_STUDENT_EMAILS.includes(email.toLowerCase());
 }
