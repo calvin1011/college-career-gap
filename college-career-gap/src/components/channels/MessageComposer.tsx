@@ -8,8 +8,11 @@ import toast from 'react-hot-toast';
 import { postMessage } from './ChannelService';
 import { TagSelector } from './TagSelector';
 import { useSubChannels } from '@/hooks/useSubChannels';
-import { ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Paperclip, X, FileText } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
+import { TemplateSelector } from './TemplateSelector';
+import { PostTemplate } from '@/types/templates';
+import { TemplatePlaceholderHelper } from './TemplatePlaceholderHelper';
 
 interface MessageComposerProps {
   channelId: string;
@@ -36,6 +39,8 @@ export function MessageComposer({
   const [isPosting, setIsPosting] = useState(false);
   const [expirationDate, setExpirationDate] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [templateUsed, setTemplateUsed] = useState(false);
 
   // File attachment state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -45,6 +50,7 @@ export function MessageComposer({
   const { subChannels, loading: subChannelsLoading, hasSubChannels: majorHasSubChannels } = useSubChannels(channelName);
 
   const handleTagToggle = (tag: MessageTag) => {
+    console.log('[MessageComposer] Tag toggled:', tag);
     setSelectedTags(prev =>
       prev.includes(tag)
         ? prev.filter(t => t !== tag)
@@ -53,6 +59,7 @@ export function MessageComposer({
   };
 
   const handleEmojiSelect = (emoji: string) => {
+    console.log('[MessageComposer] Emoji selected:', emoji);
     setContent(prev => prev + emoji);
   };
 
@@ -76,6 +83,7 @@ export function MessageComposer({
       return true;
     });
 
+    console.log('[MessageComposer] Files selected:', validFiles.length);
     setSelectedFiles(prev => [...prev, ...validFiles]);
 
     // Reset file input
@@ -86,6 +94,7 @@ export function MessageComposer({
 
   // Remove file from selection
   const handleRemoveFile = (index: number) => {
+    console.log('[MessageComposer] File removed at index:', index);
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -96,19 +105,56 @@ export function MessageComposer({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const handleTemplateSelect = (template: PostTemplate) => {
+    console.log('[MessageComposer] Template selected:', template.id);
+    console.log('[MessageComposer] Template content:', template.template.substring(0, 50) + '...');
+
+    // Fill in the template content
+    setContent(template.template);
+
+    setTemplateUsed(template.id !== 'blank');
+    console.log('[MessageComposer] Template tracking:', template.id !== 'blank');
+
+    if (template.tags.length > 0) {
+      console.log('[MessageComposer] Applying template tags:', template.tags);
+      setSelectedTags(template.tags);
+    }
+
+    // Set default expiration if template requires it
+    if (template.requiresExpiration && template.defaultExpirationDays) {
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + template.defaultExpirationDays);
+      const formattedDate = defaultDate.toISOString().split('T')[0];
+      console.log('[MessageComposer] Setting default expiration:', formattedDate);
+      setExpirationDate(formattedDate);
+    }
+
+    toast.success(`Template loaded: ${template.label}`);
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    console.log('[MessageComposer] Submit triggered');
+    console.log('[MessageComposer] Content length:', content.length);
+    console.log('[MessageComposer] Files:', selectedFiles.length);
+    console.log('[MessageComposer] Tags:', selectedTags);
+
     if (!content.trim() && selectedFiles.length === 0) {
       toast.error('Please enter a message or attach a file');
       return;
     }
 
     if (!isAdmin) {
+      console.log('[MessageComposer] User is not admin, aborting');
       return;
     }
 
     setIsPosting(true);
     try {
+      console.log('[MessageComposer] Posting message to channel:', channelId);
+
       const newMessage = await postMessage(
         channelId,
         author,
@@ -119,22 +165,27 @@ export function MessageComposer({
         selectedFiles
       );
 
+      console.log('[MessageComposer] Message posted successfully:', newMessage.id);
+
+      setTemplateUsed(false);
+
       onMessagePosted(newMessage);
+
       setContent('');
       setSelectedTags([]);
       setSelectedSubChannel('');
       setExpirationDate('');
-      setSelectedFiles([]); // Clear files
+      setSelectedFiles([]);
+
       toast.success('Resource shared successfully!');
     } catch (error) {
-      console.error('Error posting message:', error);
+      console.error('[MessageComposer] Error posting message:', error);
       toast.error('Failed to post message');
     } finally {
       setIsPosting(false);
     }
   };
 
-  // Check if any expiring tag is selected (internship, full-time, or event)
   const hasExpiringTag = selectedTags.some(tag =>
     ['internship', 'full-time', 'event', 'scholarship'].includes(tag)
   );
@@ -171,39 +222,62 @@ export function MessageComposer({
       <div className={`p-4 transition-all duration-200 ${isCollapsed ? 'hidden md:block' : 'block'}`}>
         <form onSubmit={handleSubmit} className="space-y-3">
 
-        {/* Dynamic Sub-Channel Selector for Admin - OPTIONAL */}
-        {majorHasSubChannels && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Concentration
-            </label>
-            {subChannelsLoading ? (
-              <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
-                Loading concentrations...
-              </div>
-            ) : subChannels.length > 0 ? (
-              <>
-                <select
-                  value={selectedSubChannel}
-                  onChange={(e) => setSelectedSubChannel(e.target.value)}
-                  className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isPosting}
-                >
-                  <option value="">All {channelName} students</option>
-                  {subChannels.map((subChannel) => (
-                    <option key={subChannel} value={subChannel}>
-                      {subChannel} only
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
-                No concentrations configured yet
-              </div>
-            )}
+          {/* Quick Template Button */}
+          <div className="flex items-center justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                console.log('[MessageComposer] Opening template selector');
+                setShowTemplateSelector(true);
+              }}
+              className="flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Use Template
+            </Button>
+            <p className="text-xs text-gray-500">
+              Choose a pre-made template or start from scratch
+            </p>
           </div>
-        )}
+
+          {/* Dynamic Sub-Channel Selector for Admin - OPTIONAL */}
+          {majorHasSubChannels && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Concentration
+              </label>
+              {subChannelsLoading ? (
+                <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
+                  Loading concentrations...
+                </div>
+              ) : subChannels.length > 0 ? (
+                <>
+                  <select
+                    value={selectedSubChannel}
+                    onChange={(e) => {
+                      console.log('[MessageComposer] Sub-channel changed:', e.target.value);
+                      setSelectedSubChannel(e.target.value);
+                    }}
+                    className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isPosting}
+                  >
+                    <option value="">All {channelName} students</option>
+                    {subChannels.map((subChannel) => (
+                      <option key={subChannel} value={subChannel}>
+                        {subChannel} only
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <div className="w-full h-10 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center">
+                  No concentrations configured yet
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Message textarea with emoji and attachment buttons */}
           <div className="relative">
@@ -279,6 +353,11 @@ export function MessageComposer({
             </div>
           )}
 
+          <TemplatePlaceholderHelper
+            content={content}
+            templateUsed={templateUsed}
+          />
+
           <TagSelector
             selectedTags={selectedTags}
             onTagToggle={handleTagToggle}
@@ -292,7 +371,10 @@ export function MessageComposer({
               <input
                 type="date"
                 value={expirationDate}
-                onChange={(e) => setExpirationDate(e.target.value)}
+                onChange={(e) => {
+                  console.log('[MessageComposer] Expiration date changed:', e.target.value);
+                  setExpirationDate(e.target.value);
+                }}
                 min={new Date().toISOString().split('T')[0]}
                 className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isPosting}
@@ -305,6 +387,17 @@ export function MessageComposer({
           </Button>
         </form>
       </div>
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <TemplateSelector
+          onSelect={handleTemplateSelect}
+          onClose={() => {
+            console.log('[MessageComposer] Template selector closed');
+            setShowTemplateSelector(false);
+          }}
+        />
+      )}
     </div>
   );
 }
