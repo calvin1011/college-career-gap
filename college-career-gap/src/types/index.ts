@@ -86,6 +86,27 @@ export interface Message {
   attachments?: MessageAttachment[];
 }
 
+export interface ScheduledPost {
+  id: string;
+  channelId: string;
+  authorId: string;
+  authorDisplayName: string;
+  authorAvatar?: string;
+  content: string;
+  scheduledFor: Date | Timestamp;
+  status: 'pending' | 'published' | 'cancelled' | 'failed';
+  subChannel?: string;
+  metadata?: {
+    links?: LinkPreview[];
+    tags?: string[];
+  };
+  expiresAt?: Date | Timestamp;
+  attachments?: MessageAttachment[];
+  createdAt: Date | Timestamp | FieldValue;
+  publishedAt?: Date | Timestamp;
+  failureReason?: string;
+}
+
 export interface MessageAttachment {
   id: string;
   name: string;

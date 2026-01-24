@@ -8,11 +8,12 @@ import toast from 'react-hot-toast';
 import { postMessage } from './ChannelService';
 import { TagSelector } from './TagSelector';
 import { useSubChannels } from '@/hooks/useSubChannels';
-import { ChevronDown, ChevronUp, Paperclip, X, FileText } from 'lucide-react';
+import { ChevronDown, ChevronUp, Paperclip, X, FileText, Calendar } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 import { TemplateSelector } from './TemplateSelector';
 import { PostTemplate } from '@/types/templates';
 import { TemplatePlaceholderHelper } from './TemplatePlaceholderHelper';
+import { ScheduledPostModal } from './ScheduledPostModal';
 
 interface MessageComposerProps {
   channelId: string;
@@ -41,6 +42,7 @@ export function MessageComposer({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [templateUsed, setTemplateUsed] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   // File attachment state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -382,22 +384,56 @@ export function MessageComposer({
             </div>
           )}
 
-          <Button type="submit" loading={isPosting} className="w-full md:w-auto">
-            Post
-          </Button>
-        </form>
-      </div>
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              disabled={isPosting}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isPosting ? 'Posting...' : 'Share Resource'}
+            </Button>
 
-      {/* Template Selector Modal */}
-      {showTemplateSelector && (
-        <TemplateSelector
-          onSelect={handleTemplateSelect}
-          onClose={() => {
-            console.log('[MessageComposer] Template selector closed');
-            setShowTemplateSelector(false);
-          }}
-        />
-      )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowScheduleModal(true)}
+              disabled={isPosting}
+              className="flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              Schedule
+            </Button>
+          </div>
+        </form>
+
+        {/* Template Selector Modal */}
+        {showTemplateSelector && (
+          <TemplateSelector
+            onSelect={handleTemplateSelect}
+            onClose={() => {
+              console.log('[MessageComposer] Template selector closed');
+              setShowTemplateSelector(false);
+            }}
+          />
+        )}
+
+        {/* Scheduled Post Modal */}
+        {showScheduleModal && (
+          <ScheduledPostModal
+            channelId={channelId}
+            channelName={channelName}
+            author={author}
+            onClose={() => setShowScheduleModal(false)}
+            onSuccess={() => {
+              setContent('');
+              setSelectedTags([]);
+              setSelectedSubChannel('');
+              setExpirationDate('');
+              setSelectedFiles([]);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

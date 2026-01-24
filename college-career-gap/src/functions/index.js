@@ -252,18 +252,6 @@ exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) =
         summary.expiredByTag[msg.tag] = (summary.expiredByTag[msg.tag] || 0) + 1;
     });
 
-    // Log summary
-    console.log(`
-    ╔════════════════════════════════════════╗
-    ║     CLEANUP SUMMARY                    ║
-    ╠════════════════════════════════════════╣
-    ║ Total Messages Deleted: ${totalDeleted.toString().padEnd(14)}║
-    ║ Channels Affected: ${Object.keys(channelUpdates).length.toString().padEnd(19)}║
-    ║ Internships Deleted: ${(summary.expiredByTag['internship'] || 0).toString().padEnd(17)}║
-    ║ Full-Time Jobs Deleted: ${(summary.expiredByTag['full-time'] || 0).toString().padEnd(14)}║
-    ╚════════════════════════════════════════╝
-    `);
-
     // Store cleanup log for admin dashboard
     if (totalDeleted > 0) {
         await db.collection("cleanup_logs").add(summary);
@@ -304,6 +292,106 @@ exports.fixMemberCounts = onRequest(async (req, res) => {
 
     await batch.commit();
     res.json({ success: true, fixed: results });
+});
+
+exports.publishScheduledPosts = onSchedule("every 5 minutes", async (context) => {
+    console.log(" Checking for scheduled posts to publish...");
+
+    const now = new Date();
+    const scheduledPostsRef = db.collection("scheduledPosts");
+
+    const snapshot = await scheduledPostsRef
+        .where('status', '==', 'pending')
+        .where('scheduledFor', '<=', now)
+        .get();
+
+    console.log(` Found ${snapshot.size} posts ready to publish`);
+
+    if (snapshot.size === 0) {
+        console.log(" No posts to publish");
+        return { success: true, published: 0 };
+    }
+
+    let publishedCount = 0;
+    let failedCount = 0;
+
+    for (const postDoc of snapshot.docs) {
+        const postData = postDoc.data();
+        const postId = postDoc.id;
+
+        try {
+            console.log(` Publishing post ${postId}...`);
+
+            const messagesRef = db.collection("messages");
+            const channelRef = db.collection("channels").doc(postData.channelId);
+
+            const newMessage = {
+                channelId: postData.channelId,
+                authorId: postData.authorId,
+                authorDisplayName: postData.authorDisplayName,
+                content: postData.content,
+                type: postData.attachments && postData.attachments.length > 0 ? 'media' : 'text',
+                createdAt: FieldValue.serverTimestamp(),
+                reactions: {},
+                isPinned: false,
+                isEdited: false,
+                clickCount: 0,
+                viewCount: 0,
+            };
+
+            if (postData.authorAvatar) {
+                newMessage.authorAvatar = postData.authorAvatar;
+            }
+
+            if (postData.subChannel) {
+                newMessage.subChannel = postData.subChannel;
+            }
+
+            if (postData.expiresAt) {
+                newMessage.expiresAt = postData.expiresAt;
+            }
+
+            if (postData.attachments) {
+                newMessage.attachments = postData.attachments;
+            }
+
+            if (postData.metadata) {
+                newMessage.metadata = postData.metadata;
+            }
+
+            await messagesRef.add(newMessage);
+
+            await channelRef.update({
+                messageCount: FieldValue.increment(1),
+                updatedAt: FieldValue.serverTimestamp()
+            });
+
+            await postDoc.ref.update({
+                status: 'published',
+                publishedAt: FieldValue.serverTimestamp()
+            });
+
+            publishedCount++;
+            console.log(` Successfully published post ${postId}`);
+
+        } catch (error) {
+            console.error(` Error publishing post ${postId}:`, error);
+
+            await postDoc.ref.update({
+                status: 'failed',
+                failureReason: error.message
+            });
+
+            failedCount++;
+        }
+    }
+
+    return {
+        success: true,
+        processed: snapshot.size,
+        published: publishedCount,
+        failed: failedCount
+    };
 });
 
 // Auto-fix every day

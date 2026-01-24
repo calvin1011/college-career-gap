@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Calendar } from 'lucide-react';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { Settings, Sparkles } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -202,6 +202,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
                 <span>Manage Concentrations</span>
+              </Link>
+            )}
+
+            {/* Show "Scheduled Posts" for any admin */}
+            {user?.role === 'admin' && (
+              <Link
+                href={`/dashboard/admin/scheduled-posts${currentChannelSlug ? `?channel=${currentChannelSlug}` : ''}`}
+                className={cn(
+                  'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                  { 'bg-green-600 text-white': pathname.includes('/dashboard/admin/scheduled-posts') }
+                )}
+              >
+                <Calendar className="w-5 h-5 mr-3 flex-shrink-0" />
+                <span>Scheduled Posts</span>
               </Link>
             )}
 
