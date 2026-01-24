@@ -44,7 +44,27 @@ export function useMessages(channelId: string) {
           ...doc.data(),
         })) as Message[];
 
-        setMessages(fetchedMessages);
+        // pinned first, then by creation date
+        const sortedMessages = fetchedMessages.sort((a, b) => {
+          // If both are pinned or both are not pinned, sort by date
+          if (a.isPinned === b.isPinned) {
+            const aTime = a.createdAt instanceof Date
+              ? a.createdAt.getTime()
+              : 'toDate' in a.createdAt
+                ? a.createdAt.toDate().getTime()
+                : Date.now();
+            const bTime = b.createdAt instanceof Date
+              ? b.createdAt.getTime()
+              : 'toDate' in b.createdAt
+                ? b.createdAt.toDate().getTime()
+                : Date.now();
+            return bTime - aTime; // Newest first
+          }
+          // Pinned messages come first
+          return a.isPinned ? -1 : 1;
+        });
+
+        setMessages(sortedMessages);
         setLoading(false);
       },
       (err) => {
