@@ -1,4 +1,4 @@
-import { initializeFirebase } from '@extension/shared/firebase';
+import { initializeFirebase } from '../shared/firebase';
 
 // Initialize Firebase when extension loads
 initializeFirebase();
