@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import {LogOut, Home, School, CalendarDays, User, Users, X, Trash2} from 'lucide-react';
+import {LogOut, Home, School, CalendarDays, User, Users, X, Trash2, Bookmark } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
@@ -190,6 +190,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <User className="w-5 h-5 mr-3 flex-shrink-0" />
               <span>Profile Settings</span>
             </Link>
+
+            {/* Show Bookmarks for students only */}
+            {user?.role === 'student' && (
+              <Link
+                href="/dashboard/bookmarks"
+                className={cn(
+                  'flex items-center px-3 py-2 text-sm text-gray-300 transition-colors rounded-md hover:bg-gray-800 hover:text-white',
+                  { 'bg-green-600 text-white': pathname === '/dashboard/bookmarks' }
+                )}
+              >
+                <Bookmark className="w-5 h-5 mr-3 flex-shrink-0" />
+                <span>My Bookmarks</span>
+              </Link>
+            )}
 
             {/* Show "Manage Concentrations" if user is admin of ANY channel */}
             {isAdminOfAnyChannel && (
