@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "College Career Gap - Quick Share",
+  "version": "1.0.0",
+  "description": "Share career resources to your students with one click",
+
+
+
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+
+  "host_permissions": [
+    "https://collegecareergap.com/*",
+    "https://*.collegecareergap.com/*"
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+
+    "default_title": "Share to College Career Gap"
+  },
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.handshake.com/*",
+        "*://*.glassdoor.com/*",
+        "*://*.monster.com/*",
+        "*://*.ziprecruiter.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

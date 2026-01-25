@@ -1,0 +1,35 @@
+{
+  "name": "college-career-gap-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for quick sharing to College Career Gap",
+  "scripts": {
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "firebase": "^12.2.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.23",
+    "copy-webpack-plugin": "^12.0.2",
+    "css-loader": "^6.11.0",
+    "dotenv": "^17.2.3",
+    "html-webpack-plugin": "^5.6.0",
+    "mini-css-extract-plugin": "^2.10.0",
+    "postcss": "^8.5.6",
+    "postcss-loader": "^8.2.0",
+    "style-loader": "^3.3.4",
+    "tailwindcss": "^4.1.18",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
+  }
+}
