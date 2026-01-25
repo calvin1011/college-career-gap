@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Shield, Eye, Lock, Database } from 'lucide-react';
+import { ArrowLeft, Shield, Eye, Lock, Database, Share2 } from 'lucide-react';
 
 export default function PrivacyPage() {
   return (
@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-gray-900/60">
         <div className="container mx-auto px-4 py-6">
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
           >
@@ -25,8 +25,8 @@ export default function PrivacyPage() {
           <Shield className="w-10 h-10 text-blue-400" />
           <h1 className="text-4xl md:text-5xl font-bold">Privacy Policy</h1>
         </div>
-        
-        <p className="text-gray-400 mb-12">Last updated: October 30, 2025</p>
+
+        <p className="text-gray-400 mb-12">Last updated: January 25, 2026</p>
 
         <div className="space-y-8">
           {/* Information We Collect */}
@@ -44,6 +44,25 @@ export default function PrivacyPage() {
                 <li><strong>Profile Data:</strong> Optional profile picture and bio information</li>
                 <li><strong>Usage Data:</strong> Information about how you interact with the platform, including messages viewed and resources accessed</li>
                 <li><strong>Device Information:</strong> Browser type, IP address, and device identifiers for security purposes</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Browser Extension Section */}
+          <section className="bg-blue-900/10 rounded-lg p-8 border border-blue-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <Share2 className="w-6 h-6 text-blue-400" />
+              <h2 className="text-2xl font-semibold text-blue-400">Browser Extension Data Disclosure</h2>
+            </div>
+            <div className="space-y-4 text-gray-300">
+              <p>
+                Our &#34;College Career Gap - Quick Share&#34; browser extension is designed to help administrators and professors share career resources efficiently. To provide this service, the extension handles the following data:
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li><strong>Authentication Information:</strong> The extension accesses and monitors your authentication state (authUser) via Firebase to ensure only authorized users can post to student channels.</li>
+                <li><strong>Website Content:</strong> When used on job board websites, the extension captures specific page details such as job titles, descriptions, and URLs to pre-fill sharing forms.</li>
+                <li><strong>User Selections:</strong> The extension may capture text you have manually highlighted on a page to include as part of a resource description.</li>
+                <li><strong>Limited Interaction:</strong> We do not track your general browsing history. The extension only interacts with web pages when you are on a supported job board or when you manually click the extension icon to share a resource.</li>
               </ul>
             </div>
           </section>
