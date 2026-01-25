@@ -42,7 +42,6 @@ serviceAccountKey-prod.json
 cors-config.json
 firebase.json
 serviceAccountKey.json
-package-lock.json
 
 # Functions
 src/functions/node_modules/

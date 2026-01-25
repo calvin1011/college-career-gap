@@ -1,0 +1,156 @@
+/* Content script styles for floating share button */
+
+#ccg-share-button {
+  /* Positioning */
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+
+  /* Layout */
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 20px !important;
+
+  /* Styling */
+  background: #16a34a !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+
+  /* Typography */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+
+  /* Interaction */
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: all 0.2s ease !important;
+}
+
+#ccg-share-button:hover {
+  background: #15803d !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+#ccg-share-button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+#ccg-share-button:disabled {
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+}
+
+#ccg-share-button svg {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Success toast */
+.ccg-toast {
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 20px !important;
+
+  background: #16a34a !important;
+  color: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* Animations */
+@keyframes ccg-slide-in-right {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ccg-slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+@keyframes ccg-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  #ccg-share-button {
+    bottom: 16px !important;
+    right: 16px !important;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
+
+  #ccg-share-button svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .ccg-toast {
+    top: 16px !important;
+    right: 16px !important;
+    left: 16px !important;
+    max-width: calc(100% - 32px) !important;
+  }
+}
+
+/* High specificity to override site styles */
+body #ccg-share-button {
+  all: unset !important;
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 20px !important;
+  background: #16a34a !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
