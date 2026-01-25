@@ -16,6 +16,7 @@ export interface User {
   createdAt: Date | Timestamp | FieldValue;
   lastActiveAt: Date | Timestamp | FieldValue;
   notificationTokens?: string[];
+  bookmarkedMessages?: string[];
   dismissedAnnouncements?: string[];
   profile: {
     avatar?: string;
@@ -114,6 +115,15 @@ export interface MessageAttachment {
   size: number;
   type: 'image' | 'pdf' | 'document';
   uploadedAt: Date | Timestamp;
+}
+
+export interface Bookmark {
+  id: string;
+  userId: string;
+  messageId: string;
+  channelId: string;
+  createdAt: Date | Timestamp | FieldValue;
+  note?: string; // Optional personal note about why they saved it
 }
 
 export interface LinkPreview {

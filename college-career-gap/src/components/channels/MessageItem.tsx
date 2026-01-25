@@ -14,6 +14,7 @@ import { LinkPreviewCard } from './LinkPreviewCard';
 import { ReactionPanel } from './ReactionPanel';
 import { MessageStats } from './MessageStats';
 import { MessageAttachments } from './MessageAttachments';
+import { BookmarkButton } from './BookmarkButton';
 
 interface MessageItemProps {
   message: Message;
@@ -158,8 +159,21 @@ export function MessageItem({
 
           {/* Wrapper for reactions and stats */}
           <div className="flex items-center justify-between pt-2">
-            {user && <ReactionPanel message={message} user={user} />}
-            <MessageStats message={message} />
+            <div className="flex items-center gap-2">
+              {user && <ReactionPanel message={message} user={user} />}
+              <MessageStats message={message} />
+            </div>
+
+            {/* Bookmark button - only for students */}
+            {user?.role === 'student' && (
+              <BookmarkButton
+                messageId={message.id}
+                channelId={message.channelId}
+                userId={user.uid}
+                isBookmarked={user.bookmarkedMessages?.includes(message.id) || false}
+                size="sm"
+              />
+            )}
           </div>
         </div>
       </div>
