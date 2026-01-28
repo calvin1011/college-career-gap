@@ -13,6 +13,7 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/chrome": "^0.0.268",
     "@types/node": "^25.0.10",
     "@types/react": "^19",

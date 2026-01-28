@@ -1,4 +1,4 @@
-/* Content script styles for floating share button */
+@import "tailwindcss";
 
 #ccg-share-button {
   /* Positioning */

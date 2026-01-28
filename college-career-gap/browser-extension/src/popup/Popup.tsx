@@ -1,498 +1,353 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  initializeFirebase,
-  getAuthState,
-  signInExtension,
-  signOutExtension,
-  getCachedUser
-} from '@extension/shared/firebase';
-import { collection, getDocs, addDoc, serverTimestamp, increment, doc, updateDoc } from 'firebase/firestore';
-import type { ExtensionUser, ShareData, Channel, MessageTag } from '@extension/shared/types';
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  query,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
+import { ExtensionUser, Channel, SubChannel, MessageTag } from '../shared/types';
+import '../content/content.css';
 
-// Import MESSAGE_TAGS from main app
-const MESSAGE_TAGS: MessageTag[] = [
-  'graduate', 'undergrad', 'podcast', 'advice-tip',
-  'internship', 'full-time', 'event', 'scholarship'
+const TAGS: { id: MessageTag; label: string; requiresExpiration?: boolean }[] = [
+  { id: 'general', label: 'General' },
+  { id: 'announcement', label: 'Announcement' },
+  { id: 'opportunity', label: 'Opportunity' },
+  { id: 'resource', label: 'Resource' },
+  { id: 'event', label: 'Event', requiresExpiration: true },
+  { id: 'internship', label: 'Internship', requiresExpiration: true },
+  { id: 'full-time', label: 'Full Time', requiresExpiration: true },
+  { id: 'scholarship', label: 'Scholarship', requiresExpiration: true },
 ];
 
-const Popup: React.FC = () => {
+export default function Popup() {
   const [user, setUser] = useState<ExtensionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [shareData, setShareData] = useState<ShareData | null>(null);
+  const [subChannels, setSubChannels] = useState<SubChannel[]>([]);
 
-  // Form state
-  const [selectedChannelId, setSelectedChannelId] = useState('');
+  const [selectedChannel, setSelectedChannel] = useState('');
+  const [selectedSubChannel, setSelectedSubChannel] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<MessageTag[]>([]);
-  const [posting, setPosting] = useState(false);
+  const [tagExpirations, setTagExpirations] = useState<Record<string, string>>({});
+  const [scheduledDate, setScheduledDate] = useState('');
 
-  // Auth form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [signingIn, setSigningIn] = useState(false);
-  const [error, setError] = useState('');
+  const [pageData, setPageData] = useState({
+    url: '',
+    title: '',
+    description: ''
+  });
 
-  // Initialize on mount
+  const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
   useEffect(() => {
-    initializeApp();
-  }, []);
 
-  // Check auth state on mount
-  useEffect(() => {
-    checkAuthState();
-  }, []);
-
-  // Get current page data
-  useEffect(() => {
-    getCurrentPageData();
-  }, []);
-
-  // Load channels when user is authenticated
-  useEffect(() => {
-    if (user) {
-      loadChannels();
-    }
-  }, [user]);
-
-  const initializeApp = () => {
-    try {
-      initializeFirebase();
-    } catch (error) {
-      console.error('Failed to initialize Firebase:', error);
-      setError('Failed to connect. Please try again.');
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser({
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL
+        });
+        loadChannels(currentUser.uid);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
-    }
-  };
+    });
 
-  const checkAuthState = async () => {
-    try {
-      // First check cached user (fast)
-      const cachedUser = await getCachedUser();
-      if (cachedUser) {
-        setUser(cachedUser as ExtensionUser);
-        setLoading(false);
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs[0];
+      if (tab?.id) {
+        chrome.runtime.sendMessage({ type: 'GET_PAGE_INFO' }, (response) => {
+          if (response && !response.error) {
+            setPageData({
+              url: response.url || '',
+              title: response.title || '',
+              description: response.description || ''
+            });
+
+            setContent(`${response.title}\n\n${response.url}`);
+          }
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    async function fetchSubChannels() {
+      if (!selectedChannel) {
+        setSubChannels([]);
         return;
       }
 
-      // Then check Firebase auth state
-      const firebaseUser = await getAuthState();
-      if (firebaseUser) {
-        const userData: ExtensionUser = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || '',
-          major: '', // Will be loaded from Firestore if needed
-          role: 'admin', // Extensions are admin-only
-        };
-        setUser(userData);
+      const db = getFirestore();
+      try {
+        const subChannelsRef = collection(db, 'channels', selectedChannel, 'subchannels');
+        const snapshot = await getDocs(subChannelsRef);
+        const subs = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as SubChannel[];
+        setSubChannels(subs);
+      } catch (error) {
+        console.error("Error loading subchannels", error);
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+    fetchSubChannels();
+    setSelectedSubChannel('');
+  }, [selectedChannel]);
 
-  const getCurrentPageData = async () => {
+  const loadChannels = async (userId: string) => {
+    const db = getFirestore();
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        setShareData({
-          url: tab.url || '',
-          title: tab.title || '',
-          description: '', // Could be extracted from meta tags
-        });
 
-        // Pre-fill content with title and URL
-        setContent(`${tab.title}\n\n${tab.url}`);
-      }
-    } catch (error) {
-      console.error('Failed to get page data:', error);
-    }
-  };
-
-  const loadChannels = async () => {
-    try {
-      const { db } = initializeFirebase();
-
-      // Get all channels where user is admin
-      const channelsSnapshot = await getDocs(collection(db, 'channels'));
-      const allChannels = channelsSnapshot.docs.map(doc => ({
+      const channelsRef = collection(db, 'channels');
+      const q = query(channelsRef);
+      const snapshot = await getDocs(q);
+      const loadedChannels = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        name: doc.data().name || doc.id,
+        slug: doc.data().slug || doc.id
       })) as Channel[];
-
-      // Filter to only channels where user is admin
-      const adminChannels = allChannels.filter(channel =>
-        channel.admins?.includes(user?.uid || '')
-      );
-
-      setChannels(adminChannels);
-
-      // Auto-select last used channel or first channel
-      const lastUsed = await chrome.storage.local.get('lastUsedChannel');
-      if (lastUsed.lastUsedChannel && adminChannels.find(c => c.id === lastUsed.lastUsedChannel)) {
-        setSelectedChannelId(lastUsed.lastUsedChannel);
-      } else if (adminChannels.length > 0) {
-        setSelectedChannelId(adminChannels[0].id);
-      }
+      setChannels(loadedChannels);
     } catch (error) {
       console.error('Failed to load channels:', error);
-      setError('Failed to load channels');
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSigningIn(true);
+  const handleShare = async () => {
+    if (!selectedChannel || !content) return;
+    setStatus('saving');
+
+    const db = getFirestore();
 
     try {
-      const firebaseUser = await signInExtension(email, password);
-      const userData: ExtensionUser = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || '',
-        displayName: firebaseUser.displayName || '',
-        major: '',
-        role: 'admin',
-      };
-      setUser(userData);
-    } catch (error: any) {
-      setError(error.message || 'Sign in failed');
-    } finally {
-      setSigningIn(false);
-    }
-  };
 
-  const handleSignOut = async () => {
-    try {
-      await signOutExtension();
-      setUser(null);
-      setChannels([]);
-    } catch (error) {
-      console.error('Sign out failed:', error);
-    }
-  };
-
-  const toggleTag = (tag: MessageTag) => {
-    setSelectedTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
-  };
-
-  const handlePost = async () => {
-    if (!user || !selectedChannelId || !content.trim()) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    setPosting(true);
-    setError('');
-
-    try {
-      const { db } = initializeFirebase();
-
-      // Create message
-      const newMessage = {
-        channelId: selectedChannelId,
-        authorId: user.uid,
-        authorDisplayName: user.displayName,
-        content: content.trim(),
-        type: 'link',
-        reactions: {},
-        isPinned: false,
-        isEdited: false,
-        clickCount: 0,
-        viewCount: 0,
-        createdAt: serverTimestamp(),
-        metadata: {
-          tags: selectedTags,
+      const expirations: Record<string, Timestamp> = {};
+      Object.entries(tagExpirations).forEach(([tag, dateStr]) => {
+        if (dateStr) {
+          expirations[tag] = Timestamp.fromDate(new Date(dateStr));
         }
-      };
-
-      await addDoc(collection(db, 'messages'), newMessage);
-
-      // Update channel message count
-      const channelRef = doc(db, 'channels', selectedChannelId);
-      await updateDoc(channelRef, {
-        messageCount: increment(1),
-        updatedAt: serverTimestamp(),
       });
 
-      // Save last used channel
-      await chrome.storage.local.set({ lastUsedChannel: selectedChannelId });
+      const commonData = {
+        content,
+        tags: selectedTags,
+        tagExpirations: expirations,
+        channelId: selectedChannel,
+        subChannelId: selectedSubChannel || null,
+        authorId: user?.uid,
+        authorName: user?.displayName,
+        authorPhoto: user?.photoURL,
+        linkUrl: pageData.url,
+        linkTitle: pageData.title,
+        linkDescription: pageData.description,
+      };
 
-      // Show success and close popup
-      alert('✅ Resource shared successfully!');
-      window.close();
-    } catch (error: any) {
-      console.error('Post failed:', error);
-      setError(error.message || 'Failed to share resource');
-    } finally {
-      setPosting(false);
+      if (scheduledDate) {
+        await addDoc(collection(db, 'scheduled_posts'), {
+          ...commonData,
+          scheduledFor: Timestamp.fromDate(new Date(scheduledDate)),
+          createdAt: serverTimestamp(),
+          status: 'pending'
+        });
+      } else {
+
+        await addDoc(collection(db, 'channels', selectedChannel, 'messages'), {
+          ...commonData,
+          createdAt: serverTimestamp(),
+          likes: [],
+          reactions: {},
+          replyCount: 0
+        });
+      }
+
+      setStatus('success');
+      setTimeout(() => window.close(), 1500);
+
+      chrome.runtime.sendMessage({
+        type: 'SHARE_SUCCESS',
+        data: { channelName: channels.find(c => c.id === selectedChannel)?.name }
+      });
+
+    } catch (error) {
+      console.error('Share failed:', error);
+      setStatus('error');
     }
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <div className="spinner"></div>
-        <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading...</p>
-      </div>
-    );
-  }
+  const toggleTag = (tagId: MessageTag) => {
+    if (selectedTags.includes(tagId)) {
+      setSelectedTags(prev => prev.filter(t => t !== tagId));
 
-  // Sign in form
+      const newExps = { ...tagExpirations };
+      delete newExps[tagId];
+      setTagExpirations(newExps);
+    } else {
+      setSelectedTags(prev => [...prev, tagId]);
+    }
+  };
+
+  if (loading) return <div className="p-8 flex justify-center">Loading...</div>;
+
   if (!user) {
     return (
-      <div style={{ padding: '20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-            Sign In to College Career Gap
-          </h2>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            Use your .edu email
-          </p>
-        </div>
+      <div className="w-[350px] p-6 text-center">
+        <h2 className="text-xl font-bold mb-4">College Career Gap</h2>
+        <p className="mb-6 text-gray-600">Please sign in to share resources.</p>
+        <button
+          onClick={() => {
 
-        <form onSubmit={handleSignIn}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="professor@university.edu"
-              required
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-
-          {error && (
-            <div style={{
-              padding: '8px 12px',
-              background: '#fee2e2',
-              color: '#991b1b',
-              borderRadius: '6px',
-              fontSize: '14px',
-              marginBottom: '16px'
-            }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={signingIn}
-            style={{
-              width: '100%',
-              padding: '10px',
-              background: '#16a34a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: signingIn ? 'not-allowed' : 'pointer',
-              opacity: signingIn ? 0.6 : 1
-            }}
-          >
-            {signingIn ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
+             chrome.tabs.create({ url: 'https://collegecareergap.com/login' });
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full"
+        >
+          Sign In
+        </button>
       </div>
     );
   }
 
-  // Main share UI
+  if (status === 'success') {
+    return (
+      <div className="w-[400px] h-[300px] flex flex-col items-center justify-center text-green-600">
+        <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+        <h3 className="text-xl font-bold">Shared Successfully!</h3>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: '16px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div>
-          <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '2px' }}>
-            Share Resource
-          </h2>
-          <p style={{ fontSize: '12px', color: '#6b7280' }}>
-            {user.displayName}
-          </p>
-        </div>
-        <button
-          onClick={handleSignOut}
-          style={{
-            padding: '6px 12px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '12px',
-            cursor: 'pointer'
-          }}
-        >
+    <div className="w-[400px] p-4 bg-gray-50 min-h-[500px]">
+      <header className="flex justify-between items-center mb-4 pb-4 border-b">
+        <h1 className="font-bold text-gray-800">Quick Share</h1>
+        <button onClick={() => signOut(getAuth())} className="text-xs text-red-500 hover:underline">
           Sign Out
         </button>
-      </div>
+      </header>
 
-      {/* Page preview */}
-      {shareData && (
-        <div style={{
-          padding: '12px',
-          background: '#f3f4f6',
-          borderRadius: '6px',
-          marginBottom: '16px'
-        }}>
-          <p style={{ fontSize: '12px', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>
-            Current Page:
-          </p>
-          <p style={{ fontSize: '12px', color: '#6b7280', wordBreak: 'break-word' }}>
-            {shareData.title}
-          </p>
+      <div className="space-y-4">
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
+          <select
+            value={selectedChannel}
+            onChange={(e) => setSelectedChannel(e.target.value)}
+            className="w-full p-2 border rounded-md text-sm bg-white"
+          >
+            <option value="">Select a channel...</option>
+            {channels.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {/* Channel selector */}
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-          Channel
-        </label>
-        <select
-          value={selectedChannelId}
-          onChange={(e) => setSelectedChannelId(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px',
-            background: 'white'
-          }}
-        >
-          {channels.length === 0 ? (
-            <option value="">No channels available</option>
-          ) : (
-            channels.map(channel => (
-              <option key={channel.id} value={channel.id}>
-                {channel.name}
-              </option>
-            ))
-          )}
-        </select>
-      </div>
-
-      {/* Content textarea */}
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-          Message
-        </label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Add context or instructions..."
-          rows={4}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px',
-            resize: 'vertical',
-            fontFamily: 'inherit'
-          }}
-        />
-      </div>
-
-      {/* Tags */}
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-          Tags (Optional)
-        </label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {MESSAGE_TAGS.map(tag => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => toggleTag(tag)}
-              style={{
-                padding: '4px 10px',
-                fontSize: '12px',
-                border: selectedTags.includes(tag) ? '2px solid #16a34a' : '1px solid #d1d5db',
-                borderRadius: '6px',
-                background: selectedTags.includes(tag) ? '#dcfce7' : 'white',
-                color: selectedTags.includes(tag) ? '#15803d' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: selectedTags.includes(tag) ? '600' : '400'
-              }}
+        {subChannels.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sub-channel (Optional)</label>
+            <select
+              value={selectedSubChannel}
+              onChange={(e) => setSelectedSubChannel(e.target.value)}
+              className="w-full p-2 border rounded-md text-sm bg-white"
             >
-              {tag}
-            </button>
-          ))}
+              <option value="">General</option>
+              {subChannels.map(sc => (
+                <option key={sc.id} value={sc.id}>{sc.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={4}
+            className="w-full p-2 border rounded-md text-sm font-sans"
+            placeholder="What would you like to share?"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+          <div className="flex flex-wrap gap-2">
+            {TAGS.map(tag => {
+              const isSelected = selectedTags.includes(tag.id);
+              const needsExpiration = tag.requiresExpiration && isSelected;
+
+              return (
+                <div key={tag.id} className={`flex items-center rounded-md border ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                  <button
+                    onClick={() => toggleTag(tag.id)}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      isSelected ? 'text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tag.label}
+                  </button>
+
+                  {/* Expiration Input for specific tags */}
+                  {needsExpiration && (
+                    <input
+                      type="date"
+                      className="text-xs border-l border-blue-200 bg-transparent py-1 px-2 text-gray-600 focus:outline-none"
+                      title={`${tag.label} Expiration Date`}
+                      value={tagExpirations[tag.id] || ''}
+                      onChange={(e) => setTagExpirations(prev => ({
+                        ...prev,
+                        [tag.id]: e.target.value
+                      }))}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="pt-2 border-t">
+          <label className="flex items-center text-sm font-medium text-gray-700 gap-2 mb-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            Schedule Post (Optional)
+          </label>
+          <input
+            type="datetime-local"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            className="w-full p-2 border rounded-md text-sm"
+          />
+        </div>
+
+        <div className="pt-4 flex gap-3">
+          <button
+            onClick={() => window.close()}
+            className="flex-1 px-4 py-2 border rounded-md text-sm hover:bg-gray-50 text-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleShare}
+            disabled={!selectedChannel || !content || status === 'saving'}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {status === 'saving' ? 'Sharing...' : scheduledDate ? 'Schedule Post' : 'Share Now'}
+          </button>
         </div>
       </div>
-
-      {/* Error message */}
-      {error && (
-        <div style={{
-          padding: '8px 12px',
-          background: '#fee2e2',
-          color: '#991b1b',
-          borderRadius: '6px',
-          fontSize: '14px',
-          marginBottom: '16px'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* Submit button */}
-      <button
-        onClick={handlePost}
-        disabled={posting || !selectedChannelId || !content.trim()}
-        style={{
-          width: '100%',
-          padding: '10px',
-          background: posting || !selectedChannelId || !content.trim() ? '#9ca3af' : '#16a34a',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          fontSize: '14px',
-          fontWeight: '600',
-          cursor: posting || !selectedChannelId || !content.trim() ? 'not-allowed' : 'pointer'
-        }}
-      >
-        {posting ? 'Sharing...' : 'Share to Students'}
-      </button>
     </div>
   );
-};
-
-export default Popup;
+}

@@ -1,56 +1,51 @@
-
-import type { MessageTag } from '@/types';
-
-export type { MessageTag };
-
-export interface User {
+export interface ExtensionUser {
   uid: string;
-  email: string;
-  displayName: string;
-  major: string;
-  role: 'admin' | 'student';
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
 }
 
 export interface Channel {
   id: string;
   name: string;
   slug: string;
-  admins: string[];
-  memberCount: number;
 }
 
-export interface ExtensionUser {
-  uid: string;
-  email: string;
-  displayName: string;
-  major: string;
-  role: 'admin' | 'student';
+export interface SubChannel {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export type MessageTag =
+  | 'general'
+  | 'announcement'
+  | 'opportunity'
+  | 'resource'
+  | 'event'
+  | 'internship'
+  | 'full-time'
+  | 'scholarship';
+
+export interface TagExpiration {
+  [tag: string]: string;
 }
 
 export interface ShareData {
   url: string;
   title: string;
-  description?: string;
-  selectedText?: string;
+  description: string;
+  selectedText: string;
 }
 
 export interface PostData {
   channelId: string;
+  subChannelId?: string;
   content: string;
   tags: MessageTag[];
-  subChannel?: string;
-  customExpirationDate?: string;
-}
-
-export interface ExtensionStorage {
-  authUser?: ExtensionUser;
-  lastUsedChannel?: string;
-  recentChannels?: string[];
-}
-
-export type StorageArea = 'local' | 'sync';
-
-export interface ChromeStorageChange<T> {
-  oldValue?: T;
-  newValue?: T;
+  tagExpirations?: TagExpiration;
+  scheduledFor?: string;
+  url?: string;
+  linkTitle?: string;
+  linkDescription?: string;
 }
