@@ -1,44 +1,44 @@
 import React, { useEffect, useState } from 'react';
 import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from 'firebase/auth';
-import {
-  getFirestore,
-  collection,
-  query,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-  Timestamp
-} from 'firebase/firestore';
-import { ExtensionUser, Channel, SubChannel, MessageTag } from '../shared/types';
+  createMessage,
+  ensureValidSession,
+  fetchAdminChannels,
+  fetchAllChannels,
+  fetchUserProfile,
+  signInExtension,
+  signOutExtension,
+  StoredSession,
+} from '../shared/firebase';
+import { Channel, ExtensionUser, MessageTag } from '../shared/types';
 import '../content/content.css';
 
 const TAGS: { id: MessageTag; label: string; requiresExpiration?: boolean }[] = [
-  { id: 'general', label: 'General' },
-  { id: 'announcement', label: 'Announcement' },
-  { id: 'opportunity', label: 'Opportunity' },
-  { id: 'resource', label: 'Resource' },
+  { id: 'graduate', label: 'Graduate' },
+  { id: 'undergrad', label: 'Undergrad' },
+  { id: 'podcast', label: 'Podcast' },
+  { id: 'advice-tip', label: 'Advice/Tips' },
   { id: 'event', label: 'Event', requiresExpiration: true },
   { id: 'internship', label: 'Internship', requiresExpiration: true },
   { id: 'full-time', label: 'Full Time', requiresExpiration: true },
   { id: 'scholarship', label: 'Scholarship', requiresExpiration: true },
 ];
 
+const EXPIRING_TAGS = new Set<MessageTag>(['event', 'internship', 'full-time', 'scholarship']);
+
 export default function Popup() {
+  const [session, setSession] = useState<StoredSession | null>(null);
   const [user, setUser] = useState<ExtensionUser | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [subChannels, setSubChannels] = useState<SubChannel[]>([]);
+  const [subChannels, setSubChannels] = useState<string[]>([]);
 
   const [selectedChannel, setSelectedChannel] = useState('');
   const [selectedSubChannel, setSelectedSubChannel] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<MessageTag[]>([]);
-  const [tagExpirations, setTagExpirations] = useState<Record<string, string>>({});
-  const [scheduledDate, setScheduledDate] = useState('');
+  const [expirationDate, setExpirationDate] = useState('');
 
   const [pageData, setPageData] = useState({
     url: '',
@@ -47,24 +47,57 @@ export default function Popup() {
   });
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
 
   useEffect(() => {
+    async function bootstrapAuth() {
+      try {
+        const existingSession = await ensureValidSession();
+        if (!existingSession) {
+          setLoading(false);
+          return;
+        }
 
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
+        setSession(existingSession);
+        const profile = await fetchUserProfile(existingSession);
+        if (!profile) {
+          setLoading(false);
+          return;
+        }
+
+        const adminChannels = await fetchAdminChannels(existingSession);
+        const hasAdminAccess = profile.role === 'admin' || adminChannels.length > 0;
+
+        if (!hasAdminAccess) {
+          setAuthError('Admin access is required to use this extension.');
+          await signOutExtension();
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        const channelList =
+          profile.role === 'admin'
+            ? mergeChannels(adminChannels, await fetchAllChannels(existingSession))
+            : adminChannels;
+
+        setChannels(channelList.sort((a, b) => a.name.localeCompare(b.name)));
         setUser({
-          uid: currentUser.uid,
-          email: currentUser.email,
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL
+          uid: profile.uid,
+          email: profile.email,
+          displayName: profile.displayName,
+          photoURL: profile.photoURL,
+          role: profile.role,
         });
-        loadChannels(currentUser.uid);
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    }
+
+    bootstrapAuth();
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
@@ -82,98 +115,100 @@ export default function Popup() {
         });
       }
     });
-
-    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    async function fetchSubChannels() {
-      if (!selectedChannel) {
-        setSubChannels([]);
+    if (!selectedChannel) {
+      setSubChannels([]);
+      return;
+    }
+
+    const channel = channels.find((item) => item.id === selectedChannel);
+    setSubChannels(channel?.subChannels || []);
+    setSelectedSubChannel('');
+  }, [selectedChannel, channels]);
+
+  const handleLogin = async () => {
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const newSession = await signInExtension(loginForm.email.trim(), loginForm.password);
+      setSession(newSession);
+      const profile = await fetchUserProfile(newSession);
+      if (!profile) {
+        throw new Error('Unable to load profile.');
+      }
+
+      const adminChannels = await fetchAdminChannels(newSession);
+      const hasAdminAccess = profile.role === 'admin' || adminChannels.length > 0;
+
+      if (!hasAdminAccess) {
+        setAuthError('Admin access is required to use this extension.');
+        await signOutExtension();
+        setSession(null);
+        setUser(null);
         return;
       }
 
-      const db = getFirestore();
-      try {
-        const subChannelsRef = collection(db, 'channels', selectedChannel, 'subchannels');
-        const snapshot = await getDocs(subChannelsRef);
-        const subs = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as SubChannel[];
-        setSubChannels(subs);
-      } catch (error) {
-        console.error("Error loading subchannels", error);
-      }
-    }
-    fetchSubChannels();
-    setSelectedSubChannel('');
-  }, [selectedChannel]);
+      const channelList =
+        profile.role === 'admin'
+          ? mergeChannels(adminChannels, await fetchAllChannels(newSession))
+          : adminChannels;
 
-  const loadChannels = async (userId: string) => {
-    const db = getFirestore();
-    try {
-
-      const channelsRef = collection(db, 'channels');
-      const q = query(channelsRef);
-      const snapshot = await getDocs(q);
-      const loadedChannels = snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name || doc.id,
-        slug: doc.data().slug || doc.id
-      })) as Channel[];
-      setChannels(loadedChannels);
+      setChannels(channelList.sort((a, b) => a.name.localeCompare(b.name)));
+      setUser({
+        uid: profile.uid,
+        email: profile.email,
+        displayName: profile.displayName,
+        photoURL: profile.photoURL,
+        role: profile.role,
+      });
     } catch (error) {
-      console.error('Failed to load channels:', error);
+      setAuthError(error instanceof Error ? error.message : 'Sign in failed.');
+    } finally {
+      setAuthLoading(false);
     }
   };
 
   const handleShare = async () => {
-    if (!selectedChannel || !content) return;
+    if (!selectedChannel || !content.trim() || !session || !user) return;
     setStatus('saving');
 
-    const db = getFirestore();
-
     try {
+      const activeChannel = channels.find((channel) => channel.id === selectedChannel);
+      const hasExpiringTag = selectedTags.some((tag) => EXPIRING_TAGS.has(tag));
+      let expiresAt: Date | undefined;
 
-      const expirations: Record<string, Timestamp> = {};
-      Object.entries(tagExpirations).forEach(([tag, dateStr]) => {
-        if (dateStr) {
-          expirations[tag] = Timestamp.fromDate(new Date(dateStr));
+      if (hasExpiringTag) {
+        if (expirationDate) {
+          expiresAt = new Date(expirationDate);
+        } else {
+          expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 7);
         }
-      });
-
-      const commonData = {
-        content,
-        tags: selectedTags,
-        tagExpirations: expirations,
-        channelId: selectedChannel,
-        subChannelId: selectedSubChannel || null,
-        authorId: user?.uid,
-        authorName: user?.displayName,
-        authorPhoto: user?.photoURL,
-        linkUrl: pageData.url,
-        linkTitle: pageData.title,
-        linkDescription: pageData.description,
-      };
-
-      if (scheduledDate) {
-        await addDoc(collection(db, 'scheduled_posts'), {
-          ...commonData,
-          scheduledFor: Timestamp.fromDate(new Date(scheduledDate)),
-          createdAt: serverTimestamp(),
-          status: 'pending'
-        });
-      } else {
-
-        await addDoc(collection(db, 'channels', selectedChannel, 'messages'), {
-          ...commonData,
-          createdAt: serverTimestamp(),
-          likes: [],
-          reactions: {},
-          replyCount: 0
-        });
       }
+
+      const linkData = pageData.url
+        ? {
+            url: pageData.url,
+            title: pageData.title,
+            description: pageData.description,
+          }
+        : undefined;
+
+      await createMessage(session, {
+        channelId: selectedChannel,
+        authorId: user.uid,
+        authorDisplayName: user.displayName,
+        authorAvatar: user.photoURL,
+        content: content.trim(),
+        tags: selectedTags,
+        subChannel: selectedSubChannel || null,
+        expiresAt,
+        link: linkData,
+        currentMessageCount: activeChannel?.messageCount,
+      });
 
       setStatus('success');
       setTimeout(() => window.close(), 1500);
@@ -192,30 +227,58 @@ export default function Popup() {
   const toggleTag = (tagId: MessageTag) => {
     if (selectedTags.includes(tagId)) {
       setSelectedTags(prev => prev.filter(t => t !== tagId));
-
-      const newExps = { ...tagExpirations };
-      delete newExps[tagId];
-      setTagExpirations(newExps);
     } else {
       setSelectedTags(prev => [...prev, tagId]);
     }
   };
 
+  const handleSignOut = async () => {
+    await signOutExtension();
+    setSession(null);
+    setUser(null);
+    setChannels([]);
+    setSelectedChannel('');
+    setSelectedSubChannel('');
+  };
+
+  const hasExpiringTag = selectedTags.some((tag) => EXPIRING_TAGS.has(tag));
+
   if (loading) return <div className="p-8 flex justify-center">Loading...</div>;
 
   if (!user) {
     return (
-      <div className="w-[350px] p-6 text-center">
-        <h2 className="text-xl font-bold mb-4">College Career Gap</h2>
-        <p className="mb-6 text-gray-600">Please sign in to share resources.</p>
+      <div className="w-[350px] p-6 text-center space-y-4">
+        <h2 className="text-xl font-bold">College Career Gap</h2>
+        <p className="text-gray-600 text-sm">Admin sign-in required to share resources.</p>
+        <div className="space-y-3 text-left">
+          <input
+            type="email"
+            placeholder="Admin email"
+            className="w-full p-2 border rounded-md text-sm"
+            value={loginForm.email}
+            onChange={(e) => setLoginForm((prev) => ({ ...prev, email: e.target.value }))}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-2 border rounded-md text-sm"
+            value={loginForm.password}
+            onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+          />
+        </div>
+        {authError && <p className="text-xs text-red-600">{authError}</p>}
         <button
-          onClick={() => {
-
-             chrome.tabs.create({ url: 'https://collegecareergap.com/login' });
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full"
+          onClick={handleLogin}
+          disabled={authLoading || !loginForm.email || !loginForm.password}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full disabled:opacity-60"
         >
-          Sign In
+          {authLoading ? 'Signing in...' : 'Sign In'}
+        </button>
+        <button
+          onClick={() => chrome.tabs.create({ url: 'https://collegecareergap.com/login' })}
+          className="text-xs text-blue-600 hover:underline"
+        >
+          Open full login page
         </button>
       </div>
     );
@@ -234,12 +297,17 @@ export default function Popup() {
     <div className="w-[400px] p-4 bg-gray-50 min-h-[500px]">
       <header className="flex justify-between items-center mb-4 pb-4 border-b">
         <h1 className="font-bold text-gray-800">Quick Share</h1>
-        <button onClick={() => signOut(getAuth())} className="text-xs text-red-500 hover:underline">
+        <button onClick={handleSignOut} className="text-xs text-red-500 hover:underline">
           Sign Out
         </button>
       </header>
 
       <div className="space-y-4">
+        {channels.length === 0 && (
+          <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md p-3">
+            No admin channels found for this account. Ask a super admin to grant channel access.
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
@@ -264,8 +332,8 @@ export default function Popup() {
               className="w-full p-2 border rounded-md text-sm bg-white"
             >
               <option value="">General</option>
-              {subChannels.map(sc => (
-                <option key={sc.id} value={sc.id}>{sc.name}</option>
+              {subChannels.map((subChannel) => (
+                <option key={subChannel} value={subChannel}>{subChannel}</option>
               ))}
             </select>
           </div>
@@ -287,7 +355,6 @@ export default function Popup() {
           <div className="flex flex-wrap gap-2">
             {TAGS.map(tag => {
               const isSelected = selectedTags.includes(tag.id);
-              const needsExpiration = tag.requiresExpiration && isSelected;
 
               return (
                 <div key={tag.id} className={`flex items-center rounded-md border ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
@@ -299,38 +366,27 @@ export default function Popup() {
                   >
                     {tag.label}
                   </button>
-
-                  {/* Expiration Input for specific tags */}
-                  {needsExpiration && (
-                    <input
-                      type="date"
-                      className="text-xs border-l border-blue-200 bg-transparent py-1 px-2 text-gray-600 focus:outline-none"
-                      title={`${tag.label} Expiration Date`}
-                      value={tagExpirations[tag.id] || ''}
-                      onChange={(e) => setTagExpirations(prev => ({
-                        ...prev,
-                        [tag.id]: e.target.value
-                      }))}
-                    />
-                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="pt-2 border-t">
-          <label className="flex items-center text-sm font-medium text-gray-700 gap-2 mb-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            Schedule Post (Optional)
-          </label>
-          <input
-            type="datetime-local"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full p-2 border rounded-md text-sm"
-          />
-        </div>
+        {hasExpiringTag && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Expiration Date (Optional)
+            </label>
+            <input
+              type="date"
+              value={expirationDate}
+              onChange={(e) => setExpirationDate(e.target.value)}
+              className="w-full p-2 border rounded-md text-sm"
+              min={new Date().toISOString().split('T')[0]}
+            />
+            <p className="text-xs text-gray-500 mt-1">Defaults to 7 days if left blank.</p>
+          </div>
+        )}
 
         <div className="pt-4 flex gap-3">
           <button
@@ -341,13 +397,20 @@ export default function Popup() {
           </button>
           <button
             onClick={handleShare}
-            disabled={!selectedChannel || !content || status === 'saving'}
+            disabled={!selectedChannel || !content.trim() || status === 'saving' || channels.length === 0}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {status === 'saving' ? 'Sharing...' : scheduledDate ? 'Schedule Post' : 'Share Now'}
+            {status === 'saving' ? 'Sharing...' : 'Share Now'}
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+function mergeChannels(primary: Channel[], secondary: Channel[]): Channel[] {
+  const merged = new Map<string, Channel>();
+  primary.forEach((channel) => merged.set(channel.id, channel));
+  secondary.forEach((channel) => merged.set(channel.id, channel));
+  return Array.from(merged.values());
 }
