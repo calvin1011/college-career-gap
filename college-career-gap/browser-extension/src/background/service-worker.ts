@@ -1,8 +1,3 @@
-import { initializeFirebase } from '../shared/firebase';
-
-// Initialize Firebase when extension loads
-initializeFirebase();
-
 console.log('College Career Gap Extension - Background Service Worker loaded');
 
 // Listen for extension installation
@@ -102,11 +97,11 @@ chrome.runtime.onConnect.addListener((port) => {
 
 // Monitor auth state changes
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'local' && changes.authUser) {
-    console.log('Auth state changed:', changes.authUser.newValue ? 'Signed in' : 'Signed out');
+  if (areaName === 'local' && changes.authSession) {
+    console.log('Auth state changed:', changes.authSession.newValue ? 'Signed in' : 'Signed out');
 
     // Update extension icon badge if signed in
-    if (changes.authUser.newValue) {
+    if (changes.authSession.newValue) {
       chrome.action.setBadgeText({ text: '✓' });
       chrome.action.setBadgeBackgroundColor({ color: '#16a34a' });
     } else {

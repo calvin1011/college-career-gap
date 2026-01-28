@@ -1,35 +1,29 @@
 export interface ExtensionUser {
   uid: string;
-  email: string | null;
-  displayName: string | null;
+  email: string;
+  displayName: string;
   photoURL: string | null;
+  role: 'admin' | 'student' | string;
 }
 
 export interface Channel {
   id: string;
   name: string;
   slug: string;
-}
-
-export interface SubChannel {
-  id: string;
-  name: string;
-  description?: string;
+  subChannels: string[];
+  admins: string[];
+  messageCount?: number;
 }
 
 export type MessageTag =
-  | 'general'
-  | 'announcement'
-  | 'opportunity'
-  | 'resource'
-  | 'event'
+  | 'graduate'
+  | 'undergrad'
+  | 'podcast'
+  | 'advice-tip'
   | 'internship'
   | 'full-time'
+  | 'event'
   | 'scholarship';
-
-export interface TagExpiration {
-  [tag: string]: string;
-}
 
 export interface ShareData {
   url: string;
@@ -40,10 +34,9 @@ export interface ShareData {
 
 export interface PostData {
   channelId: string;
-  subChannelId?: string;
+  subChannel?: string;
   content: string;
   tags: MessageTag[];
-  tagExpirations?: TagExpiration;
   scheduledFor?: string;
   url?: string;
   linkTitle?: string;
