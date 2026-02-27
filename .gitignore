@@ -1,0 +1,5 @@
+# IDE
+.idea/
+
+# Browser extension build artifacts
+college-career-gap/browser-extension/*.zip
