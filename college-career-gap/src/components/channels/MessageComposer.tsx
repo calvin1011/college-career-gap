@@ -284,11 +284,11 @@ export function MessageComposer({
           {/* Message textarea with emoji and attachment buttons */}
           <div className="relative">
             <textarea
-              className="w-full p-3 pr-24 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+              className="w-full p-3 pr-24 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[140px] text-sm md:text-base"
               placeholder="Share a career resource or announcement..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={3}
+              rows={6}
               disabled={isPosting}
             />
 

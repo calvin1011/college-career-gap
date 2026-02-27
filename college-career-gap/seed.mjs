@@ -27,7 +27,8 @@ const SUPPORTED_MAJORS = [
   'Chemistry',
   'Psychology',
   'Kinesiology',
-  'Nursing'
+  'Nursing',
+  'Math'
 ];
 
 // SEED MESSAGES (from ChannelService.ts)
@@ -68,6 +69,15 @@ const SEED_MESSAGES = {
     'Kinesiology': [
         { content: "Welcome to Kinesiology! 🏃‍♂️ Discover opportunities in sports medicine, physical therapy, fitness, and health promotion.", type: 'text', isPinned: true },
         { content: "Consider these career paths: physical therapy, athletic training, occupational therapy, sports psychology, and health coaching.", type: 'text', isPinned: false }
+    ],
+    'Nursing': [
+        { content: "Welcome to Nursing! 🩺 Find clinical opportunities, licensing information, and career guidance for nursing students.", type: 'text', isPinned: true },
+        { content: "Explore nursing specialties: pediatrics, emergency care, mental health, community health, and nurse practitioner pathways.", type: 'text', isPinned: false }
+    ],
+    'Math': [
+        { content: "Welcome to Math! ➕ Discover career paths in academia, data science, actuarial science, finance, and more.", type: 'text', isPinned: true },
+        { content: "Math opens many doors: consider actuarial exams, quantitative finance, cryptography, machine learning, and operations research.", type: 'text', isPinned: false },
+        { content: "AMC, Putnam, and research experiences strengthen your profile. Reach out to professors for research and teaching opportunities.", type: 'text', isPinned: false }
     ]
 }; //
 
