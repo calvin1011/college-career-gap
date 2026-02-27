@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { postMessage } from './ChannelService';
 import { TagSelector } from './TagSelector';
 import { useSubChannels } from '@/hooks/useSubChannels';
-import { ChevronDown, ChevronUp, Paperclip, X, FileText, Calendar } from 'lucide-react';
+import { ChevronUp, ChevronRight, Paperclip, X, FileText, Calendar, PenSquare } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 import { TemplateSelector } from './TemplateSelector';
 import { PostTemplate } from '@/types/templates';
@@ -203,25 +203,34 @@ export function MessageComposer({
   }
 
   return (
-    <div className="bg-white border-t md:border md:rounded-lg md:shadow-lg">
-      {/* Mobile collapse toggle - only visible on small screens */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="md:hidden w-full p-4 flex items-center justify-between bg-gray-50 border-b border-gray-200 active:bg-gray-100 transition-colors"
-        aria-label={isCollapsed ? "Expand composer" : "Collapse composer"}
-      >
-        <span className="text-sm font-semibold text-gray-700">
-          {isCollapsed ? 'Show Post Form' : 'Hide Post Form'}
-        </span>
-        {isCollapsed ? (
-          <ChevronDown className="w-5 h-5 text-gray-600" />
-        ) : (
-          <ChevronUp className="w-5 h-5 text-gray-600" />
-        )}
-      </button>
+    <div className="bg-white border-t md:border md:rounded-lg md:shadow-lg relative">
+      {isCollapsed ? (
+        /* Pulsating tab when collapsed - positioned on the right so admins can spot it */
+        <div className="flex justify-end p-2">
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg ring-2 ring-blue-400 ring-offset-2 animate-pulse hover:animate-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            aria-label="Expand post form"
+          >
+            <PenSquare className="w-5 h-5" />
+            <span>Post</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Collapse button - visible on all screens when form is expanded */}
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="w-full p-3 flex items-center justify-end gap-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 border-b border-gray-100 transition-colors"
+            aria-label="Collapse composer"
+          >
+            <span className="text-xs font-medium">Collapse post form</span>
+            <ChevronUp className="w-4 h-4" />
+          </button>
 
-      {/* Form content - always visible on desktop, toggleable on mobile */}
-      <div className={`p-4 transition-all duration-200 ${isCollapsed ? 'hidden md:block' : 'block'}`}>
+      {/* Form content - hidden when collapsed */}
+      <div className="p-4">
         <form onSubmit={handleSubmit} className="space-y-3">
 
           {/* Quick Template Button */}
@@ -434,6 +443,8 @@ export function MessageComposer({
           />
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
