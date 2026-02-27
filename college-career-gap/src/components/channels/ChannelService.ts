@@ -149,6 +149,23 @@ const SEED_MESSAGES = {
   'Nursing': [
     { content: "Welcome to Nursing! 🩺 Find clinical opportunities, licensing information, and career guidance for nursing students.", type: 'text' as const, isPinned: true },
     { content: "Explore nursing specialties: pediatrics, emergency care, mental health, community health, and nurse practitioner pathways.", type: 'text' as const, isPinned: false }
+  ],
+  'Math': [
+    {
+      content: "Welcome to Math! ➕ Discover career paths in academia, data science, actuarial science, finance, and more.",
+      type: 'text' as const,
+      isPinned: true
+    },
+    {
+      content: "Math opens many doors: consider actuarial exams, quantitative finance, cryptography, machine learning, and operations research.",
+      type: 'text' as const,
+      isPinned: false
+    },
+    {
+      content: "AMC, Putnam, and research experiences strengthen your profile. Reach out to professors for research and teaching opportunities.",
+      type: 'text' as const,
+      isPinned: false
+    }
   ]
 };
 

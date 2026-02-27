@@ -230,7 +230,8 @@ export const SUPPORTED_MAJORS = [
   'Chemistry',
   'Psychology',
   'Kinesiology',
-  'Nursing'
+  'Nursing',
+  'Math'
 ] as const;
 
 export type Major = typeof SUPPORTED_MAJORS[number];
