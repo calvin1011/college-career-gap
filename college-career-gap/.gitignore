@@ -22,6 +22,7 @@
 
 # misc
 .DS_Store
+docs/RORK_MOBILE_APP_PROMPT.md
 *.pem
 
 # debug
