@@ -14,7 +14,11 @@ interface InviteModalProps {
 
 export function InviteModal({ channel, onClose }: InviteModalProps) {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-  const inviteUrl = `${window.location.origin}/join/${channel.inviteCode}`;
+  const [inviteUrl, setInviteUrl] = useState('');
+
+  useEffect(() => {
+    setInviteUrl(`${window.location.origin}/join/${channel.inviteCode}`);
+  }, [channel.inviteCode]);
 
   useEffect(() => {
     const generateQrCode = async () => {
