@@ -4,10 +4,19 @@ import { Resend } from 'resend';
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Helper to generate the HTML wrapper
 function getEmailHTML(content: string): string {
-  // Convert newlines to <br> so the formatting is preserved
-  const formattedContent = content.replace(/\n/g, '<br>');
+  // Escape HTML first, then convert newlines to <br>
+  const formattedContent = escapeHtml(content).replace(/\n/g, '<br>');
 
   return `
     <!DOCTYPE html>

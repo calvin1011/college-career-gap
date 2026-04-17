@@ -50,14 +50,14 @@ export function useMessages(channelId: string) {
           if (a.isPinned === b.isPinned) {
             const aTime = a.createdAt instanceof Date
               ? a.createdAt.getTime()
-              : 'toDate' in a.createdAt
+              : a.createdAt && typeof a.createdAt === 'object' && 'toDate' in a.createdAt
                 ? a.createdAt.toDate().getTime()
-                : Date.now();
+                : 0;
             const bTime = b.createdAt instanceof Date
               ? b.createdAt.getTime()
-              : 'toDate' in b.createdAt
+              : b.createdAt && typeof b.createdAt === 'object' && 'toDate' in b.createdAt
                 ? b.createdAt.toDate().getTime()
-                : Date.now();
+                : 0;
             return bTime - aTime; // Newest first
           }
           // Pinned messages come first

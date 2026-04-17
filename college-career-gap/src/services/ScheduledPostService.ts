@@ -1,6 +1,6 @@
 import {
   collection,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -108,7 +108,7 @@ export async function createScheduledPost(
     },
   };
 
-  await addDoc(scheduledPostsRef, scheduledPost);
+  await setDoc(newPostRef, scheduledPost);
 
   const createdDoc = await getDoc(newPostRef);
   return {

@@ -6,11 +6,9 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin'); // NEW
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
-const env = dotenv.config({ path: path.resolve(__dirname, '../.env.local') }).parsed || {};
+const dotenvParsed = dotenv.config({ path: path.resolve(__dirname, '../.env.local') }).parsed || {};
 
-const isProduction = (process.env.NODE_ENV || 'development') === 'production';
-
-module.exports = (env, argv) => ({
+module.exports = (_env, argv) => ({
   mode: argv.mode || process.env.NODE_ENV || 'development',
   entry: {
     popup: './src/popup/index.tsx',
@@ -48,7 +46,7 @@ module.exports = (env, argv) => ({
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env': JSON.stringify(env),
+      'process.env': JSON.stringify(dotenvParsed),
     }),
     new HtmlWebpackPlugin({
       template: './src/popup/popup.html',
