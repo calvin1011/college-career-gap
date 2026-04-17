@@ -90,8 +90,8 @@ export default function Popup() {
           photoURL: profile.photoURL,
           role: profile.role,
         });
-      } catch (error) {
-        console.error('Failed to restore session:', error);
+      } catch {
+        // session restore failed — user will need to sign in again
       } finally {
         setLoading(false);
       }
@@ -164,6 +164,7 @@ export default function Popup() {
         photoURL: profile.photoURL,
         role: profile.role,
       });
+      setLoginForm({ email: '', password: '' });
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Sign in failed.');
     } finally {
@@ -218,8 +219,7 @@ export default function Popup() {
         data: { channelName: channels.find(c => c.id === selectedChannel)?.name }
       });
 
-    } catch (error) {
-      console.error('Share failed:', error);
+    } catch {
       setStatus('error');
     }
   };

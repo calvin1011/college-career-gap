@@ -1,5 +1,4 @@
 // Content script that runs on job board pages
-console.log('College Career Gap - Content script loaded');
 
 // Detect if we're on a job posting page
 function isJobPostingPage(): boolean {
@@ -31,6 +30,7 @@ function isJobPostingPage(): boolean {
 function createShareButton(): HTMLButtonElement {
   const button = document.createElement('button');
   button.id = 'ccg-share-button';
+  button.setAttribute('aria-label', 'Share this job posting to College Career Gap');
   button.innerHTML = `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -125,8 +125,6 @@ function injectShareButton() {
 
   const button = createShareButton();
   document.body.appendChild(button);
-
-  console.log('Share button injected');
 }
 
 // Wait for page to load, then inject button
@@ -137,27 +135,32 @@ if (document.readyState === 'loading') {
 }
 
 // Re-inject on navigation (for single-page apps like LinkedIn)
+// Debounced to avoid excessive DOM polling
 let lastUrl = window.location.href;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 new MutationObserver(() => {
-  const currentUrl = window.location.href;
-  if (currentUrl !== lastUrl) {
-    lastUrl = currentUrl;
+  if (debounceTimer) return;
 
-    // Remove old button
-    const oldButton = document.getElementById('ccg-share-button');
-    if (oldButton) {
-      oldButton.remove();
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+
+      const oldButton = document.getElementById('ccg-share-button');
+      if (oldButton) {
+        oldButton.remove();
+      }
+
+      setTimeout(injectShareButton, 500);
     }
-
-    // Re-inject if still on job page
-    setTimeout(injectShareButton, 500);
-  }
+  }, 300);
 }).observe(document.body, { childList: true, subtree: true });
 
 // Listen for messages from background script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'SHARE_COMPLETE') {
-    // Show success feedback on page
     showSuccessToast();
   }
   return false;
@@ -166,6 +169,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Show success toast
 function showSuccessToast() {
   const toast = document.createElement('div');
+  toast.setAttribute('role', 'alert');
   toast.innerHTML = `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -195,7 +199,6 @@ function showSuccessToast() {
 
   document.body.appendChild(toast);
 
-  // Remove after 3 seconds
   setTimeout(() => {
     toast.style.animation = 'slideOutRight 0.3s ease';
     setTimeout(() => toast.remove(), 300);
@@ -215,7 +218,7 @@ style.textContent = `
       opacity: 1;
     }
   }
-  
+
   @keyframes slideOutRight {
     from {
       transform: translateX(0);

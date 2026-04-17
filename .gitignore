@@ -1,5 +1,13 @@
 # IDE
 .idea/
+**/.cursor/
+
+# Local npm config (registry tokens, etc.)
+.npmrc
+
+# Mobile app review / preview (local or separate tree)
+mobile-app-review/
+mobile-app-preview/
 
 # Browser extension build artifacts
 college-career-gap/browser-extension/*.zip

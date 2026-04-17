@@ -8,8 +8,10 @@ const dotenv = require('dotenv');
 
 const env = dotenv.config({ path: path.resolve(__dirname, '../.env.local') }).parsed || {};
 
-module.exports = {
-  mode: process.env.NODE_ENV || 'development',
+const isProduction = (process.env.NODE_ENV || 'development') === 'production';
+
+module.exports = (env, argv) => ({
+  mode: argv.mode || process.env.NODE_ENV || 'development',
   entry: {
     popup: './src/popup/index.tsx',
     background: './src/background/service-worker.ts',
@@ -63,5 +65,9 @@ module.exports = {
       ],
     }),
   ],
-  devtool: process.env.NODE_ENV === 'production' ? false : 'inline-source-map',
-};
+  optimization: {
+    minimize: argv.mode === 'production',
+    splitChunks: false,
+  },
+  devtool: argv.mode === 'production' ? false : 'inline-source-map',
+});
