@@ -13,6 +13,10 @@ concurrency:
 env:
   NODE_VERSION: '22'
 
+defaults:
+  run:
+    working-directory: college-career-gap
+
 jobs:
   # ──────────────────────────────────────────────
   # Security: audit dependencies for vulnerabilities
@@ -27,17 +31,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: college-career-gap/package-lock.json
 
       - run: npm ci
 
-      - name: Audit main app dependencies
-        run: npm audit --audit-level=high
+      - name: Audit main app dependencies (production only)
+        run: npm audit --audit-level=high --omit=dev
 
-      - name: Audit browser extension dependencies
-        working-directory: browser-extension
+      - name: Audit browser extension dependencies (production only)
+        working-directory: college-career-gap/browser-extension
         run: |
           npm ci
-          npm audit --audit-level=high
+          npm audit --audit-level=high --omit=dev
 
   # ──────────────────────────────────────────────
   # Security: scan for leaked secrets in code
@@ -68,6 +73,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: college-career-gap/package-lock.json
 
       - run: npm ci
 
@@ -87,6 +93,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: college-career-gap/package-lock.json
 
       - run: npm ci
 
@@ -94,7 +101,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Type-check browser extension
-        working-directory: browser-extension
+        working-directory: college-career-gap/browser-extension
         run: |
           npm ci
           npx tsc --noEmit
@@ -123,6 +130,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: college-career-gap/package-lock.json
 
       - run: npm ci
 
@@ -143,19 +151,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: college-career-gap/package-lock.json
 
       - run: npm ci
 
       - name: Install extension dependencies
-        working-directory: browser-extension
+        working-directory: college-career-gap/browser-extension
         run: npm ci
 
       - name: Build extension
-        working-directory: browser-extension
+        working-directory: college-career-gap/browser-extension
         run: npm run build
 
       - name: Verify extension output
-        working-directory: browser-extension
+        working-directory: college-career-gap/browser-extension
         run: |
           test -f dist/manifest.json || (echo "Missing manifest.json" && exit 1)
           test -f dist/popup.js || (echo "Missing popup.js" && exit 1)
@@ -164,7 +173,7 @@ jobs:
           echo "All extension artifacts present"
 
       - name: Check bundle size
-        working-directory: browser-extension
+        working-directory: college-career-gap/browser-extension
         run: |
           POPUP_SIZE=$(wc -c < dist/popup.js)
           MAX_SIZE=262144  # 256 KiB
@@ -184,9 +193,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check for committed env files
+        working-directory: .
         run: |
           FOUND=0
-          for f in .env .env.local .env.production .env.development browser-extension/.env.local serviceAccountKey.json; do
+          for f in college-career-gap/.env college-career-gap/.env.local college-career-gap/.env.production college-career-gap/.env.development college-career-gap/browser-extension/.env.local college-career-gap/serviceAccountKey.json; do
             if git ls-files --error-unmatch "$f" 2>/dev/null; then
               echo "DANGER: $f is tracked by git — remove it and add to .gitignore"
               FOUND=1
@@ -214,6 +224,7 @@ jobs:
       - env-check
     steps:
       - name: Check all jobs
+        working-directory: .
         run: |
           if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
             echo "One or more CI jobs failed"
