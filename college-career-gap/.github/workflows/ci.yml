@@ -1,0 +1,226 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Security: audit dependencies for vulnerabilities
+  # ──────────────────────────────────────────────
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Audit main app dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit browser extension dependencies
+        working-directory: browser-extension
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+  # ──────────────────────────────────────────────
+  # Security: scan for leaked secrets in code
+  # ──────────────────────────────────────────────
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ──────────────────────────────────────────────
+  # Lint: ESLint for code quality
+  # ──────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run ESLint (errors only)
+        run: npx eslint
+
+  # ──────────────────────────────────────────────
+  # TypeScript: type-check main app and extension
+  # ──────────────────────────────────────────────
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type-check main app
+        run: npx tsc --noEmit
+
+      - name: Type-check browser extension
+        working-directory: browser-extension
+        run: |
+          npm ci
+          npx tsc --noEmit
+
+  # ──────────────────────────────────────────────
+  # Build: verify main app builds successfully
+  # ──────────────────────────────────────────────
+  build-app:
+    name: Build App
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    env:
+      NEXT_PUBLIC_FIREBASE_API_KEY: fake-key-for-ci
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: fake.firebaseapp.com
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: fake-project
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: fake.appspot.com
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+      NEXT_PUBLIC_FIREBASE_APP_ID: '1:000:web:fake'
+      NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: G-FAKE
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      RESEND_API_KEY: re_fake_key_for_ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Next.js app
+        run: npm run build
+
+  # ──────────────────────────────────────────────
+  # Build: verify browser extension builds
+  # ──────────────────────────────────────────────
+  build-extension:
+    name: Build Extension
+    runs-on: ubuntu-latest
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install extension dependencies
+        working-directory: browser-extension
+        run: npm ci
+
+      - name: Build extension
+        working-directory: browser-extension
+        run: npm run build
+
+      - name: Verify extension output
+        working-directory: browser-extension
+        run: |
+          test -f dist/manifest.json || (echo "Missing manifest.json" && exit 1)
+          test -f dist/popup.js || (echo "Missing popup.js" && exit 1)
+          test -f dist/background.js || (echo "Missing background.js" && exit 1)
+          test -f dist/content.js || (echo "Missing content.js" && exit 1)
+          echo "All extension artifacts present"
+
+      - name: Check bundle size
+        working-directory: browser-extension
+        run: |
+          POPUP_SIZE=$(wc -c < dist/popup.js)
+          MAX_SIZE=262144  # 256 KiB
+          if [ "$POPUP_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "popup.js is $(($POPUP_SIZE / 1024)) KiB — exceeds 256 KiB limit"
+            exit 1
+          fi
+          echo "popup.js is $(($POPUP_SIZE / 1024)) KiB — within limit"
+
+  # ──────────────────────────────────────────────
+  # Env safety: ensure no secrets in committed files
+  # ──────────────────────────────────────────────
+  env-check:
+    name: Env File Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for committed env files
+        run: |
+          FOUND=0
+          for f in .env .env.local .env.production .env.development browser-extension/.env.local serviceAccountKey.json; do
+            if git ls-files --error-unmatch "$f" 2>/dev/null; then
+              echo "DANGER: $f is tracked by git — remove it and add to .gitignore"
+              FOUND=1
+            fi
+          done
+          if [ "$FOUND" -eq 1 ]; then
+            exit 1
+          fi
+          echo "No secret files tracked by git"
+
+  # ──────────────────────────────────────────────
+  # Final gate: all checks must pass
+  # ──────────────────────────────────────────────
+  ci-passed:
+    name: CI Passed
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - security-audit
+      - secret-scan
+      - lint
+      - typecheck
+      - build-app
+      - build-extension
+      - env-check
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more CI jobs failed"
+            exit 1
+          fi
+          if [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more CI jobs were cancelled"
+            exit 1
+          fi
+          echo "All CI checks passed"
