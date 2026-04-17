@@ -8,8 +8,13 @@
 
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "notifications"
   ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
 
   "host_permissions": [
     "https://collegecareergap.com/*",
@@ -48,7 +53,14 @@
   "web_accessible_resources": [
     {
       "resources": ["assets/*"],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.handshake.com/*",
+        "*://*.glassdoor.com/*",
+        "*://*.monster.com/*",
+        "*://*.ziprecruiter.com/*"
+      ]
     }
   ]
 }
