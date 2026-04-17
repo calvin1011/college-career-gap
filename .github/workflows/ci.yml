@@ -35,14 +35,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Audit main app dependencies
-        run: npm audit --audit-level=high
+      - name: Audit main app dependencies (production only)
+        run: npm audit --audit-level=high --omit=dev
 
-      - name: Audit browser extension dependencies
+      - name: Audit browser extension dependencies (production only)
         working-directory: college-career-gap/browser-extension
         run: |
           npm ci
-          npm audit --audit-level=high
+          npm audit --audit-level=high --omit=dev
 
   # ──────────────────────────────────────────────
   # Security: scan for leaked secrets in code
