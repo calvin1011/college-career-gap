@@ -267,6 +267,10 @@ exports.fixMemberCounts = onCall(async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Admin role required');
+    }
     console.log(" Fixing member counts...");
 
     const channelsSnapshot = await db.collection("channels").get();

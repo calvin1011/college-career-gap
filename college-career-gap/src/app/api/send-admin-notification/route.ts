@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       const decoded = await adminAuth.verifyIdToken(token);
       uid = decoded.uid;
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userDoc = await adminDb.collection('users').doc(uid).get();
     if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
