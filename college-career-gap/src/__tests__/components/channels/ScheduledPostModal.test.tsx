@@ -65,7 +65,6 @@ import { ScheduledPostModal } from '@/components/channels/ScheduledPostModal';
 
 const mockCreateScheduledPost = createScheduledPost as jest.Mock;
 const mockToastError = (toast as unknown as { error: jest.Mock }).error;
-const mockToastSuccess = (toast as unknown as { success: jest.Mock }).success;
 
 const defaultProps = {
   channelId: 'computer-science',

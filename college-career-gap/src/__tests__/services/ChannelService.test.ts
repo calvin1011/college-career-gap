@@ -12,7 +12,7 @@ jest.mock('firebase/firestore', () => ({
   doc: jest.fn((firstArg, second, third) =>
     third !== undefined
       ? { __collection: second, __id: third }           // doc(db, 'col', 'id')
-      : { __collection: (firstArg as any)?.__collection, __id: second } // doc(colRef, 'id')
+      : { __collection: (firstArg as { __collection?: string })?.__collection, __id: second } // doc(colRef, 'id')
   ),
   setDoc: jest.fn().mockResolvedValue(undefined),
   getDoc: jest.fn(),
@@ -66,12 +66,9 @@ import {
   getDoc,
   getDocs,
   runTransaction,
-  arrayUnion,
-  arrayRemove,
   updateDoc,
   addDoc,
 } from 'firebase/firestore';
-import toast from 'react-hot-toast';
 
 import {
   findChannelByInviteCode,
@@ -88,9 +85,6 @@ const mockGetDocs = getDocs as jest.Mock;
 const mockRunTransaction = runTransaction as jest.Mock;
 const mockUpdateDoc = updateDoc as jest.Mock;
 const mockAddDoc = addDoc as jest.Mock;
-const mockToastSuccess = (toast as unknown as { success: jest.Mock }).success;
-const mockToastError = (toast as unknown as { error: jest.Mock }).error;
-
 /** A fake Firestore transaction object used for all runTransaction mocks. */
 const mockTx = {
   get: jest.fn(),

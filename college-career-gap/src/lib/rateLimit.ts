@@ -13,9 +13,7 @@ interface WindowEntry {
 // Singleton store and interval — persisted on globalThis so that Next.js HMR
 // re-evaluations reuse the existing instances rather than creating duplicates.
 declare global {
-  // eslint-disable-next-line no-var
   var __rateLimitStore: Map<string, WindowEntry> | undefined;
-  // eslint-disable-next-line no-var
   var __rateLimitInterval: ReturnType<typeof setInterval> | undefined;
 }
 

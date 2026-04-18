@@ -5,6 +5,7 @@
  * use the root-resolved path—actually intercept the require() calls inside
  * src/functions/index.js.
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
 
 module.exports = (request, options) => {

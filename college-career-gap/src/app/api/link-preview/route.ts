@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
   // Prefer request.ip (set by Next.js/Vercel from the trusted socket address)
   // and only fall back to X-Forwarded-For when it is absent — prevents callers
   // from spoofing a fresh bucket by forging the header.
-  const ip = request.ip ?? request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const ip = (request as NextRequest & { ip?: string }).ip ?? request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
   const rl = checkRateLimit(`link-preview:${ip}`, 30, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(

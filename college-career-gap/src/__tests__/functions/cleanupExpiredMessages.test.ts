@@ -60,7 +60,7 @@ jest.mock(
   'firebase-functions/v2/scheduler',
   () => ({
     // Return the handler directly so exports.cleanupExpiredMessages IS the handler
-    onSchedule: jest.fn((_schedule: string, handler: Function) => handler),
+    onSchedule: jest.fn((_schedule: string, handler: (...args: unknown[]) => unknown) => handler),
   }),
   { virtual: true },
 );
@@ -129,7 +129,7 @@ function makeExpiredDoc(
 // ── setup ─────────────────────────────────────────────────────────────────────
 
 beforeAll(() => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   cleanupExpiredMessages = require('../../functions/index').cleanupExpiredMessages;
 });
 

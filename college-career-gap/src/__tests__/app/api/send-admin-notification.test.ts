@@ -127,7 +127,7 @@ describe('POST /api/send-admin-notification', () => {
   // ── body validation ──────────────────────────────────────────────────────
   it('returns 400 when professorEmail is missing', async () => {
     setupAdminAuth();
-    const { professorEmail: _, ...body } = VALID_BODY;
+    const body = { professorName: VALID_BODY.professorName, channelName: VALID_BODY.channelName, superAdminUid: VALID_BODY.superAdminUid };
     const res = await POST(makeReq(body, 'valid-token'));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/missing/i);
@@ -135,21 +135,21 @@ describe('POST /api/send-admin-notification', () => {
 
   it('returns 400 when professorName is missing', async () => {
     setupAdminAuth();
-    const { professorName: _, ...body } = VALID_BODY;
+    const body = { professorEmail: VALID_BODY.professorEmail, channelName: VALID_BODY.channelName, superAdminUid: VALID_BODY.superAdminUid };
     const res = await POST(makeReq(body, 'valid-token'));
     expect(res.status).toBe(400);
   });
 
   it('returns 400 when channelName is missing', async () => {
     setupAdminAuth();
-    const { channelName: _, ...body } = VALID_BODY;
+    const body = { professorEmail: VALID_BODY.professorEmail, professorName: VALID_BODY.professorName, superAdminUid: VALID_BODY.superAdminUid };
     const res = await POST(makeReq(body, 'valid-token'));
     expect(res.status).toBe(400);
   });
 
   it('returns 400 when superAdminUid is missing', async () => {
     setupAdminAuth();
-    const { superAdminUid: _, ...body } = VALID_BODY;
+    const body = { professorEmail: VALID_BODY.professorEmail, professorName: VALID_BODY.professorName, channelName: VALID_BODY.channelName };
     const res = await POST(makeReq(body, 'valid-token'));
     expect(res.status).toBe(400);
   });

@@ -9,18 +9,19 @@ jest.mock('firebase/firestore', () => {
   const timestampFromDate = jest.fn((d: Date) => ({ __ts: d.toISOString() }));
   const timestampNow = jest.fn(() => ({ __ts: 'now' }));
   const MockTimestamp = { fromDate: timestampFromDate, now: timestampNow };
-  const module = {
-    collection: jest.fn((_db: unknown, name: string) => ({ __collection: name })),
-    doc: jest.fn((_colRef: unknown) => ({ __id: 'scheduled-post-id' })),
-    setDoc: jest.fn().mockResolvedValue(undefined),
-    getDoc: jest.fn(),
-    updateDoc: jest.fn().mockResolvedValue(undefined),
-    deleteDoc: jest.fn().mockResolvedValue(undefined),
-    serverTimestamp: jest.fn(() => ({ __serverTimestamp: true })),
-    Timestamp: MockTimestamp,
-  };
-  Object.assign(module, { __Timestamp: MockTimestamp });
-  return module;
+  return Object.assign(
+    {
+      collection: jest.fn((_db: unknown, name: string) => ({ __collection: name })),
+      doc: jest.fn(() => ({ __id: 'scheduled-post-id' })),
+      setDoc: jest.fn().mockResolvedValue(undefined),
+      getDoc: jest.fn(),
+      updateDoc: jest.fn().mockResolvedValue(undefined),
+      deleteDoc: jest.fn().mockResolvedValue(undefined),
+      serverTimestamp: jest.fn(() => ({ __serverTimestamp: true })),
+      Timestamp: MockTimestamp,
+    },
+    { __Timestamp: MockTimestamp }
+  );
 });
 
 jest.mock('firebase/storage', () => ({
@@ -184,7 +185,7 @@ describe('createScheduledPost', () => {
       author,
       'General advice',
       futureDate,
-      ['tips'],
+      ['advice-tip'],
     );
 
     const [, data] = mockSetDoc.mock.calls[0];
