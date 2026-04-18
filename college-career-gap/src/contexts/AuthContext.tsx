@@ -11,7 +11,7 @@ import {
   sendPasswordResetEmail,
   deleteUser,
 } from 'firebase/auth';
-import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, arrayUnion, increment, Transaction, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase/config';
 import { User, Major } from '@/types';
 import toast from 'react-hot-toast';
@@ -54,32 +54,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Effect 1: subscribe to Firebase Auth state — stable, runs once on mount
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (userCredential) => {
       setFirebaseUser(userCredential || null);
       if (!userCredential) setLoading(false);
     });
+    return () => unsubscribeAuth();
+  }, []);
 
-    let unsubscribeFirestore: (() => void) | undefined;
-
-    if (firebaseUser) {
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
-        setUser(doc.exists() ? { uid: doc.id, ...doc.data() } as User : null);
-        setLoading(false);
-      }, (error) => {
-        console.error("Error listening to user document:", error);
-        setUser(null);
-        setLoading(false);
-      });
-    } else {
+  // Effect 2: subscribe to Firestore user document — re-runs only when firebaseUser changes
+  useEffect(() => {
+    if (!firebaseUser) {
       setUser(null);
+      return;
     }
-
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeFirestore) unsubscribeFirestore();
-    };
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const unsubscribeFirestore = onSnapshot(userDocRef, (snapshot) => {
+      const userData = snapshot.exists() ? { uid: snapshot.id, ...snapshot.data() } as User : null;
+      setUser(userData);
+      setLoading(false);
+      if (userData) {
+        handlePendingInvite(userData);
+      }
+    }, (error) => {
+      console.error("Error listening to user document:", error);
+      setUser(null);
+      setLoading(false);
+    });
+    return () => unsubscribeFirestore();
   }, [firebaseUser]);
 
   const handlePendingInvite = async (user: User): Promise<string | null> => {
@@ -254,22 +257,8 @@ const signIn = async (email: string, password: string): Promise<string | null> =
       throw new Error('Please verify your email before signing in.');
     }
 
-    // Handle pending invite on successful login
-    const userDocRef = doc(db, 'users', userCredential.user.uid);
-    const userDoc = await getDoc(userDocRef);
-
-    if (userDoc.exists()) {
-      const userData = { uid: userDoc.id, ...userDoc.data() } as User;
-      const channelSlug = await handlePendingInvite(userData);
-
-      // If invite was handled, return the path to redirect to
-      if (channelSlug) {
-        return `/dashboard/channels/${channelSlug}`;
-      }
-    }
-
     toast.success('Welcome back!');
-    return null; // No specific redirect
+    return null;
   };
 
 
@@ -290,11 +279,11 @@ const signIn = async (email: string, password: string): Promise<string | null> =
       throw new Error("You must be logged in to delete an account.");
     }
     try {
+      // Delete Firebase Auth first — if this fails, Firestore data is untouched
+      await deleteUser(firebaseUser);
+
       // Delete Firestore data (user document and channel memberships)
       await deleteUserAccount(user);
-
-      // Delete the user from Firebase Authentication
-      await deleteUser(firebaseUser);
 
       toast.success("Your account has been permanently deleted.");
     } catch (error: unknown) {

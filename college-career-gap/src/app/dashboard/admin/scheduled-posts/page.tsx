@@ -5,14 +5,13 @@ import { useScheduledPosts } from '@/hooks/useScheduledPosts';
 import { ScheduledPostsList } from '@/components/channels/ScheduledPostsList';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Calendar, AlertCircle } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { ScheduledPost } from '@/types';
 import { EditScheduledPostModal } from '@/components/channels/EditScheduledPostModal';
 
 export default function ScheduledPostsPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const channelSlug = searchParams.get('channel');
 

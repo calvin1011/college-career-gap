@@ -54,9 +54,6 @@ export default function ManageSubChannelsPage() {
 
   const majorSlug = getCurrentChannelSlug();
 
-  // Check if user is admin of THIS channel
-  const isAdminOfThisChannel = channel?.admins?.includes(user?.uid || '') || false;
-
   // Real-time listener for channel data
   useEffect(() => {
     if (!majorSlug) {

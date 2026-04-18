@@ -275,15 +275,5 @@ export async function getSubChannelsForMajor(major: string): Promise<string[]> {
   }
 }
 
-/**
- * Synchronous version that checks if a major string matches known majors with sub-channels.
- * Use this for initial UI rendering, then fetch actual sub-channels asynchronously.
- */
-export function hasSubChannelsSync(major: string): boolean {
-  // Based on your current setup, Business and Computer Science have sub-channels
-  // This is a temporary helper until all components are updated to use async
-  const majorsWithSubChannels = ['Business', 'Computer Science'];
-  return majorsWithSubChannels.includes(major);
-}
 
 export const DEFAULT_REACTIONS = ['👍', '❤️', '🔥', '💡', '🎯', '📖', '🚀'] as const;
