@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { SUPPORTED_MAJORS } from '@/types';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';

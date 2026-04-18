@@ -3,17 +3,19 @@
  * Super Admin Configuration
  * These emails bypass the .edu requirement and always have admin access
  */
-export const SUPER_ADMIN_EMAILS = [
-  'calvinssendawula@gmail.com',
-];
+export const SUPER_ADMIN_EMAILS: string[] = (process.env.SUPER_ADMIN_EMAILS ?? '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 /**
  * Test/Dummy Student Accounts
  * These emails bypass the .edu requirement but get student access
  */
-export const TEST_STUDENT_EMAILS = [
-  'collegecareerstudent@gmail.com',
-];
+export const TEST_STUDENT_EMAILS: string[] = (process.env.TEST_STUDENT_EMAILS ?? '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 /**
  * Check if an email is a super admin

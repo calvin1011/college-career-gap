@@ -2,6 +2,9 @@
 .idea/
 **/.cursor/
 
+# macOS
+.DS_Store
+
 # Local npm config (registry tokens, etc.)
 .npmrc
 

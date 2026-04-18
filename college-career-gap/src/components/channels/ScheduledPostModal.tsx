@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/Button';
 import { MessageTag } from '@/types';
 import { TagSelector } from './TagSelector';
 import { useSubChannels } from '@/hooks/useSubChannels';
-import { Timestamp } from 'firebase/firestore';
 import { EmojiPicker } from './EmojiPicker';
 import { Paperclip, X, FileText, Calendar } from 'lucide-react';
 import { createScheduledPost } from '@/services/ScheduledPostService';
@@ -128,12 +127,6 @@ export function ScheduledPostModal({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const getMinDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 5);
-    return now.toISOString().slice(0, 16);
   };
 
   return (

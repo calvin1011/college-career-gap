@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 //process key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -58,6 +60,34 @@ function getAdminApprovedEmailHTML(name: string, channelName: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 20 notifications per 10 minutes per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+    const rl = checkRateLimit(`send-admin-notification:${ip}`, 20, 10 * 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+      );
+    }
+
+    // Verify Firebase ID token and require admin role
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    let uid: string;
+    try {
+      const decoded = await adminAuth.verifyIdToken(token);
+      uid = decoded.uid;
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const userDoc = await adminDb.collection('users').doc(uid).get();
+    if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { professorEmail, professorName, channelName, superAdminUid } = await request.json();
 
     if (!professorEmail || !professorName || !channelName || !superAdminUid) {

@@ -3,7 +3,7 @@ const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
-const { onRequest, onCall } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 
 // Initialize the Admin SDK
@@ -90,13 +90,10 @@ exports.sendNewMessageNotification = onDocumentCreated("messages/{messageId}", a
     let allTokens = [];
 
     // Gather notification tokens from all members of the channel
-    for (const userId of memberIds) {
-        // Don't send a notification to the person who sent the message
-        if (userId === authorId) {
-            continue;
-        }
-
-        const userDoc = await db.collection("users").doc(userId).get();
+    const recipientIds = memberIds.filter(id => id !== authorId);
+    const userRefs = recipientIds.map(id => db.collection("users").doc(id));
+    const userDocs = userRefs.length > 0 ? await db.getAll(...userRefs) : [];
+    for (const userDoc of userDocs) {
         if (userDoc.exists && Array.isArray(userDoc.data().notificationTokens)) {
             allTokens.push(...userDoc.data().notificationTokens);
         }
@@ -231,9 +228,7 @@ exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) =
             channelBatches.push(currentChannelBatch);
         }
 
-        for (const batch of channelBatches) {
-            await batch.commit();
-        }
+        await Promise.all(channelBatches.map(batch => batch.commit()));
 
         console.log(` Updated message counts for all affected channels`);
     }
@@ -268,7 +263,14 @@ exports.cleanupExpiredMessages = onSchedule("every day 02:00", async (context) =
     };
 });
 
-exports.fixMemberCounts = onRequest(async (req, res) => {
+exports.fixMemberCounts = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required');
+    }
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Admin role required');
+    }
     console.log(" Fixing member counts...");
 
     const channelsSnapshot = await db.collection("channels").get();
@@ -291,7 +293,7 @@ exports.fixMemberCounts = onRequest(async (req, res) => {
     }
 
     await batch.commit();
-    res.json({ success: true, fixed: results });
+    return { success: true, fixed: results };
 });
 
 exports.publishScheduledPosts = onSchedule("every 5 minutes", async (context) => {

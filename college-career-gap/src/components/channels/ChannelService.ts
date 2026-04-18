@@ -214,9 +214,6 @@ async function createSeedMessages(channelId: string, channelName: string) {
     };
 
     await addDoc(messagesRef, messageData);
-
-    // Add small delay to ensure proper ordering
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   // Update channel message count

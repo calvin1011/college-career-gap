@@ -9,7 +9,6 @@ import toast from 'react-hot-toast';
 import { Major, SUPPORTED_MAJORS } from '@/types';
 import { bypassEduValidation } from '@/config/superAdmin';
 import { useSubChannels } from '@/hooks/useSubChannels';
-import Link from "next/link";
 
 interface SignUpFormProps {
   onToggleMode?: () => void;

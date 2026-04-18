@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git diff:*)",
+      "Bash(ls:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh api:*)",
+      "Bash(git:*)",
+      "Bash(mkdir -p /Users/cali/PycharmProjects/college-career-gap/.github/workflows)",
+      "Bash(cp /Users/cali/PycharmProjects/college-career-gap/college-career-gap/.github/workflows/ci.yml /Users/cali/PycharmProjects/college-career-gap/.github/workflows/ci.yml)",
+      "Bash(npm audit:*)"
+    ]
+  }
+}
