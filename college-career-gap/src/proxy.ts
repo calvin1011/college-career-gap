@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * load additional scripts, which covers Firebase SDK dynamic imports and
  * Google Analytics without needing `'unsafe-eval'` or `'unsafe-inline'`.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Only apply to page navigation — skip static assets and API routes
   const { pathname } = request.nextUrl;
   if (
